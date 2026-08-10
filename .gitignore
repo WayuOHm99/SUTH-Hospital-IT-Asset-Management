@@ -3,6 +3,9 @@
 **/dist/
 **/dist-ssr/
 **/coverage/
+**/uploads/
+**/tmp/
+**/temp/
 
 # Environment and local configuration
 **/.env
