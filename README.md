@@ -25,16 +25,22 @@ docs/      Architecture, handoff notes, fixes, and import samples
 
 ต้องมี Node.js, npm และ MySQL ก่อนเริ่มงาน
 
-1. สร้างฐานข้อมูลจาก schema และรัน migration ตามลำดับชื่อไฟล์:
+1. เลือกขั้นตอนฐานข้อมูลให้ตรงกับสถานะของระบบ:
+
+   **Fresh installation:** สร้างฐานข้อมูลใหม่จาก schema เท่านั้น เพราะ
+   `schema.sql` มีโครงสร้างล่าสุดจาก migrations รวมอยู่แล้ว
 
    ```sh
    mysql -u root -p your_database < database/schema.sql
+   ```
+
+   **Existing database upgrade:** สำหรับฐานข้อมูลที่สร้างจาก schema รุ่นเก่า ให้รัน
+   migrations ที่ยังไม่เคยใช้ตามลำดับชื่อไฟล์ โดยตรวจประวัติการใช้งานก่อนทุกครั้ง
+
+   ```sh
    mysql -u root -p your_database < database/migrations/001_unique_print_transactions.sql
    mysql -u root -p your_database < database/migrations/002_add_fiscal_year_range.sql
    ```
-
-   สำหรับฐานข้อมูลใหม่ `schema.sql` มีโครงสร้างจาก migration รวมอยู่แล้ว
-   จึงไม่ต้องรัน migration ซ้ำ ส่วน migration ใช้กับฐานข้อมูลที่สร้างจาก schema รุ่นเก่า
 
 2. ถ้าต้องการข้อมูลสำหรับพัฒนา:
 

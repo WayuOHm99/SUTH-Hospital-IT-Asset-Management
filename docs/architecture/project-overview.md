@@ -604,8 +604,6 @@ Admin upload Excel
 | zod | `^4.4.3` | Validate payload ของ devices |
 | multer | `^2.2.0` | รับไฟล์ upload แบบ multipart |
 | xlsx | `^0.18.5` | อ่าน Excel และรูปแบบตาราง |
-| csv-parser | `^3.2.1` | มีใน dependency แต่ไม่พบการเรียกใช้ใน source ปัจจุบัน |
-| iconv-lite | `^0.7.3` | มีใน dependency แต่ไม่พบการเรียกใช้ใน source ปัจจุบัน |
 | nodemon | `^3.1.14` | Dev dependency สำหรับ `npm run dev` |
 
 ทักษะ Backend ที่เห็นจากโค้ด: REST API design, middleware chain, JWT authentication, role authorization, SQL JOIN/GROUP BY/VIEW, transaction handling, bulk upsert, file upload validation, Excel parsing, mapping Master Data, error handling และ input validation
