@@ -641,8 +641,9 @@ Admin upload Excel
 - Backend ใช้ semicolon และ CommonJS
 - Frontend ใช้ Vue SFC/ES module และ Tailwind class
 - มี `package-lock.json` ทั้ง Backend และ Frontend
-- ไม่มี ESLint, Prettier, test runner หรือ coverage threshold ใน repository
-- `backend npm test` ยังเป็น placeholder ที่จบด้วย exit code 1
+- ไม่มี ESLint, Prettier หรือ coverage threshold ใน repository
+- Backend ใช้ Node.js test runner ผ่าน `npm test`; CI รัน Backend tests และ Frontend
+  production build โดยทั้งสองงานผ่านแล้ว
 
 ## 10. โครงสร้างไฟล์และโฟลเดอร์ทั้งหมด
 
@@ -953,15 +954,14 @@ npm run preview
 - SQL schema, views, migrations และ seed data
 - Handoff document, CSV ตัวอย่าง และสถานะการนำ sample workbook กลับมาใช้ภายหลัง
 - ความสอดคล้องของเอกสารกับไฟล์จริงใน repository
+- Backend automated tests และ Frontend production build ทั้งในเครื่องและ GitHub CI
 
 สิ่งที่ยังไม่ได้รันในการจัดทำรายงาน:
 
 - `npm install`
-- `npm run build` ของ Frontend เนื่องจากใน workspace ไม่มี `node_modules` ณ เวลาตรวจสอบ
 - Backend กับ MySQL จริง
 - Smoke test authenticated API
 - การรัน migration/seed กับฐานข้อมูลจริง
-- Automated tests เพราะ repository ยังไม่มี test framework และ `backend npm test` เป็น placeholder
 
 ## 14. ข้อสังเกต ความเสี่ยง และงานที่ควรพิจารณาต่อ
 
@@ -970,7 +970,7 @@ npm run preview
 - `.env.example` ใช้ `JWT_SECRET=your_secret_key_here` ต้องเปลี่ยนก่อนใช้งานจริง
 - `schema.sql` มี user ทดลอง `admin` และ `user1` พร้อม hash ของรหัสผ่าน prototype ตามเอกสาร Handoff ควรเปลี่ยนหรือลบก่อน Production
 - Token เก็บใน `localStorage`; หากนำไป Production ควรทบทวนความเสี่ยง XSS และพิจารณา HttpOnly Secure cookie หรือมาตรการที่เหมาะสม
-- CORS hardcode เป็น localhost ต้องทำเป็น environment configuration เมื่อ deploy
+- CORS อ่าน `CLIENT_ORIGIN` จาก environment และใช้ `http://localhost:5173` เป็นค่า default
 - ไม่มีการจัดการ refresh token, revoke token หรือ audit log
 - อาจต้องเพิ่ม validation ของ payload สัญญา, Master Data และ Import ให้เข้มเท่ากับ device ที่ใช้ Zod
 
