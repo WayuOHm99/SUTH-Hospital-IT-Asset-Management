@@ -22,8 +22,8 @@
 3. ทดสอบรูปแบบด้วย `docs/samples/mock-import-devices.csv`
 4. ระบบแปลงชื่อ master data เป็น ID ก่อนบันทึก ห้าม import เข้าตารางโดยตรง
 
-ไฟล์ `docs/samples/source-device-register.xlsx` เป็นไฟล์อ้างอิงต้นฉบับที่ถูกติดตามใน
-repository ต้องทบทวนการจัดชั้นข้อมูลและสิทธิ์เข้าถึงก่อนเผยแพร่ repository
+Sample workbook ยังไม่ถูกติดตามใน repository และจะเพิ่มภายหลังเมื่อผ่านการ sanitize
+พร้อมยืนยันว่าใช้ข้อมูล mock 100% เท่านั้น
 
 ## Verification before handoff
 

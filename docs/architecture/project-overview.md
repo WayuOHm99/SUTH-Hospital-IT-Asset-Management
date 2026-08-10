@@ -660,7 +660,7 @@ Admin upload Excel
 | `backend/` | Express/MySQL API |
 | `frontend/` | Vue/Vite SPA |
 | `database/` | Schema, migrations และ dummy data |
-| `docs/` | Handoff, ตัวอย่าง Import และไฟล์ Excel ต้นฉบับ |
+| `docs/` | Handoff, ตัวอย่าง Import ที่ผ่านการตรวจสอบ และเอกสารสถาปัตยกรรม |
 
 ### 10.2 `backend/`
 
@@ -850,7 +850,7 @@ Routes ที่ประกาศ:
 | `docs/handoff/project-handoff.md` | สถานะ Authentication, Database, Import และ verification สำหรับส่งมอบ |
 | `docs/fixes/fiscal-year-print-usage.md` | บันทึก root cause และ deployment note ของ fiscal-year fix |
 | `docs/samples/mock-import-devices.csv` | CSV ตัวอย่าง 5 แถวสำหรับทดสอบ import |
-| `docs/samples/source-device-register.xlsx` | Excel ต้นฉบับสำหรับทดสอบ import ยอดมิเตอร์ ต้องทบทวนชั้นข้อมูลก่อนเผยแพร่ |
+| Sample workbook (planned) | จะเพิ่มภายหลังเมื่อผ่านการ sanitize และยืนยันว่าใช้ข้อมูล mock 100% |
 
 ## 11. ข้อมูลตัวอย่างและเอกสาร Handoff
 
@@ -869,19 +869,11 @@ Routes ที่ประกาศ:
 
 ข้อสังเกต: วันที่ยอดพิมพ์ตัวอย่าง `2025-01` ถึง `2025-03` อยู่นอกช่วงของปีงบ 2566 และ 2567 ที่ seed ไว้ ดังนั้นถ้าเลือกปีงบจาก seed ปัจจุบัน หน้า Expense/Print Summary อาจไม่พบยอดในปีงบที่เลือก ทั้งที่มี transaction อยู่ นี่เป็นจุดที่ควรปรับ seed ให้ช่วงปีงบกับ transaction สอดคล้องกันก่อนใช้ Demo
 
-### 11.2 Excel ต้นฉบับ
+### 11.2 สถานะ Sample Workbook
 
-จากการตรวจ metadata ของ workbook:
-
-- มี worksheet เดียวชื่อ `Sheet1`
-- ใช้พื้นที่ `A1:AY461` หรือ 51 คอลัมน์ และประมาณ 459 แถวข้อมูลหลังหัวตาราง
-- แถว 1 เป็นหัวข้อรวม/ข้อมูลประกอบ
-- แถว 2 เป็น header จริง
-- คอลัมน์หลักประกอบด้วยสัญญา, No., Model, SN., Printer Name, Building, Floor, แผนก, Group, ราคา และมิเตอร์
-- คอลัมน์มิเตอร์เริ่มจาก `meter 9/67` และต่อเนื่องถึง `meter 8/68`
-- มีคอลัมน์คำนวณจากไฟล์เดิม เช่น จำนวนพิมพ์รวม, ลดการพิมพ์ 20%, ค่าเฉลี่ย, KPI และยอดสะสม
-
-โค้ด `importPrintTransactions` ออกแบบให้ไม่พึ่งตำแหน่งคอลัมน์ แต่หา header `SN.` และอ่านชื่อ `meter M/YY` โดยตรง จึงรองรับกรณีคอลัมน์อื่นขยับได้ดีกว่า mapping ตามตำแหน่ง
+Sample workbook ถูกนำออกจาก Git tracking ชั่วคราว เพราะยังไม่สามารถยืนยันได้ว่าไม่มี
+ข้อมูล production หรือข้อมูลอ่อนไหว จะเพิ่มกลับภายหลังเมื่อผ่านการ sanitize และยืนยันว่า
+เป็นข้อมูล mock 100% เท่านั้น
 
 ### 11.3 สถานะเอกสาร Handoff
 
@@ -961,7 +953,7 @@ npm run preview
 - Backend entrypoint, middleware, controllers และ routes
 - Frontend router, layout, views, components, stores, services และ styles
 - SQL schema, views, migrations และ seed data
-- Handoff document, CSV ตัวอย่าง และโครงสร้าง Excel ต้นฉบับ
+- Handoff document, CSV ตัวอย่าง และสถานะการนำ sample workbook กลับมาใช้ภายหลัง
 - ความสอดคล้องของเอกสารกับไฟล์จริงใน repository
 
 สิ่งที่ยังไม่ได้รันในการจัดทำรายงาน:

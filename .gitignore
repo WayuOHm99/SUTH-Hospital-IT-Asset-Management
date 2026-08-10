@@ -35,3 +35,6 @@ Thumbs.db
 
 # Project-local utilities
 hash.js
+
+# Unverified sample data; add only after sanitization review
+docs/samples/source-device-register.xlsx
