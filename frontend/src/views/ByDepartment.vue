@@ -1,6 +1,6 @@
 <script setup>
 import { ref, onMounted, computed, watch } from "vue";
-import ChevronIcon from "../components/ChevronIcon.vue";
+import ChevronIcon from "../components/ui/ChevronIcon.vue";
 import { Line } from "vue-chartjs";
 import {
   Chart as ChartJS,
@@ -13,10 +13,10 @@ import {
   LinearScale,
 } from "chart.js";
 import api from "../services/api";
-import DepartmentPicker from "../components/DepartmentPicker.vue";
-import MonthPicker from "../components/MonthPicker.vue";
+import DepartmentPicker from "../components/forms/DepartmentPicker.vue";
+import MonthPicker from "../components/forms/MonthPicker.vue";
 import { useChartTheme } from "../composables/useChartTheme";
-import { fiscalYearState } from "../store/fiscalYear";
+import { fiscalYearState } from "../stores/fiscalYear";
 
 const { baseChartOptions } = useChartTheme();
 

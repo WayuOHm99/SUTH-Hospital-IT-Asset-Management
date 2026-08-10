@@ -1,7 +1,7 @@
 import axios from "axios";
 import router from "../router";
-import { toastInfo } from "../store/toast";
-import { clearAuth } from "../store/auth";
+import { toastInfo } from "../stores/toast";
+import { clearAuth } from "../stores/auth";
 
 const api = axios.create({
   baseURL: "http://localhost:3000/api",

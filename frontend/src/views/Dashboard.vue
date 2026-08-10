@@ -251,14 +251,14 @@
 import { ref, onMounted, h } from "vue";
 import { RouterLink } from "vue-router";
 import api from "../services/api";
-import { authState } from "../store/auth";
+import { authState } from "../stores/auth";
 
-import MonthlyChart from "../components/MonthlyChart.vue";
-import BuildingChart from "../components/BuildingChart.vue";
-import BuildingCostChart from "../components/BuildingCostChart.vue";
-import CostChart from "../components/CostChart.vue";
-import DashboardFilter from "../components/DashboardFilter.vue";
-import SkeletonBlock from "../components/SkeletonBlock.vue";
+import MonthlyChart from "../components/charts/MonthlyChart.vue";
+import BuildingChart from "../components/charts/BuildingChart.vue";
+import BuildingCostChart from "../components/charts/BuildingCostChart.vue";
+import CostChart from "../components/charts/CostChart.vue";
+import DashboardFilter from "../components/forms/DashboardFilter.vue";
+import SkeletonBlock from "../components/feedback/SkeletonBlock.vue";
 
 // =====================
 // State

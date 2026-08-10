@@ -1,10 +1,10 @@
 <script setup>
 import { ref, computed, onMounted } from "vue"
 import api from "../../services/api"
-import DataTable from "../../components/DataTable.vue"
-import { toastError } from "../../store/toast"
-import { askConfirm } from "../../store/confirmDialog"
-import { fiscalYearState, loadFiscalYears, refreshFiscalYears } from "../../store/fiscalYear"
+import DataTable from "../../components/tables/DataTable.vue"
+import { toastError } from "../../stores/toast"
+import { askConfirm } from "../../stores/confirmDialog"
+import { fiscalYearState, loadFiscalYears, refreshFiscalYears } from "../../stores/fiscalYear"
 
 // ใช้ fiscalYearState ตัวเดียวกับที่ Navbar ใช้ (ไม่เก็บ list แยกเป็น local state ของหน้านี้เอง)
 // เพราะเดิมหน้านี้ดึงข้อมูลของตัวเองแยกต่างหาก พอ add/edit/delete แล้ว Navbar ไม่รู้เรื่อง
