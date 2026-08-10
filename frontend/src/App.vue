@@ -3,8 +3,8 @@ import { computed } from "vue";
 import { useRoute } from "vue-router";
 import MainLayout from "./layouts/MainLayout.vue";
 import AuthLayout from "./layouts/AuthLayout.vue";
-import ToastContainer from "./components/ToastContainer.vue";
-import ConfirmDialog from "./components/ConfirmDialog.vue";
+import ToastContainer from "./components/feedback/ToastContainer.vue";
+import ConfirmDialog from "./components/feedback/ConfirmDialog.vue";
 
 const route = useRoute();
 

@@ -13,7 +13,7 @@
  */
 import { ref, computed, watch } from "vue";
 import api from "../services/api";
-import SearchableSelect from "../components/SearchableSelect.vue";
+import SearchableSelect from "../components/forms/SearchableSelect.vue";
 
 const props = defineProps({
   modelValue: { type: Boolean, default: false },

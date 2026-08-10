@@ -1,9 +1,9 @@
 <script setup>
 import { ref, computed, onMounted, watch } from "vue";
 import api from "../services/api";
-import { activeFiscalYearRange, fiscalYearMonths, fiscalYearState } from "../store/fiscalYear";
-import SearchableSelect from "../components/SearchableSelect.vue";
-import DataTable from "../components/DataTable.vue";
+import { activeFiscalYearRange, fiscalYearMonths, fiscalYearState } from "../stores/fiscalYear";
+import SearchableSelect from "../components/forms/SearchableSelect.vue";
+import DataTable from "../components/tables/DataTable.vue";
 
 const loading = ref(false);
 const message = ref(null);

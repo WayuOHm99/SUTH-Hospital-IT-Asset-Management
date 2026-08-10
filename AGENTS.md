@@ -4,10 +4,10 @@ Hospital IT asset-management app: Express/MySQL API, Vue/Vite client, SQL script
 
 ## Project Structure
 
-- `backend/` — CommonJS Express API: endpoints in `routes/`, request logic in `controllers/`, auth checks in `middlewares/`, and shared calculations in `utils/`.
-- `frontend/` — Vue 3 SPA: screens in `src/views/`, reusable UI in `src/components/`, state in `src/store/`, HTTP access in `src/services/api.js`, navigation in `src/router/`, and static files in `public/` or `src/assets/`.
-- `database/` — `schema.sql`, migrations, and `seed_dummy_data.sql`.
-- `docs/` — handoff notes and sample import files.
+- `backend/src/` — CommonJS Express API: app/server entry points, HTTP adapters in `routes/`, request logic in `controllers/` or focused `modules/`, auth checks in `middleware/`, database configuration in `config/`, and shared calculations in `utils/`.
+- `frontend/` — Vue 3 SPA: screens in `src/views/`, reusable UI grouped by responsibility in `src/components/`, state in `src/stores/`, HTTP access in `src/services/api.js`, navigation in `src/router/`, and static files in `public/`.
+- `database/` — fresh-install `schema.sql`, ordered files in `migrations/`, and development data in `seeds/`.
+- `docs/` — architecture, handoff, fix notes, and reviewed sample import files.
 
 ## Build, Test, and Development Commands
 
@@ -29,7 +29,7 @@ npm run build     # Production bundle
 npm run preview   # Serve the built bundle locally
 ```
 
-Copy `.env.example` to `backend/.env`. From the repository root, run `mysql -u root -p your_database < database/schema.sql`, apply migrations in order, and use `database/seed_dummy_data.sql` for data.
+Copy `.env.example` to `backend/.env`. From the repository root, run `mysql -u root -p your_database < database/schema.sql`, apply `database/migrations/` in numeric order for existing databases, and use `database/seeds/seed_dummy_data.sql` only for development data.
 
 ## Coding Style & Naming Conventions
 
@@ -37,7 +37,7 @@ Use two-space indentation. Backend uses CommonJS and semicolons; frontend uses E
 
 ## Testing Guidelines
 
-No automated test framework or coverage threshold is configured; backend `npm test` is a placeholder. Run `npm run build` in `frontend` and smoke-test `GET /` plus affected authenticated API flows with the backend and seeded database. For database changes, test a fresh schema and migration path, including Thai fiscal-year boundaries. New tests should sit near the target module and use `*.test.js` or `*.spec.js`.
+Backend tests use Node's built-in test runner through `npm test`; no coverage threshold is configured. Pull requests run backend tests and the frontend production build through `.github/workflows/ci.yml`. Smoke-test `GET /` plus affected authenticated API flows with the backend and seeded database. For database changes, test a fresh schema and migration path, including Thai fiscal-year boundaries. New tests should sit near the target module and use `*.test.js` or `*.spec.js`.
 
 ## Commit & Pull Request Guidelines
 

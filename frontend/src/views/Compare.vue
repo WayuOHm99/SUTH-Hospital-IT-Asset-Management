@@ -12,7 +12,7 @@ import {
   LinearScale,
 } from "chart.js";
 import api from "../services/api";
-import MonthPicker from "../components/MonthPicker.vue";
+import MonthPicker from "../components/forms/MonthPicker.vue";
 import { useChartTheme } from "../composables/useChartTheme";
 
 const { baseChartOptions } = useChartTheme();

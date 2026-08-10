@@ -18,7 +18,7 @@ CREATE TABLE fiscal_year (
     id INT AUTO_INCREMENT PRIMARY KEY,
     year VARCHAR(10) NOT NULL UNIQUE,
     -- ช่วงเดือน "YYYY-MM" ที่ปีงบนี้ครอบคลุมจริง (ต.ค.-ก.ย. ตามปีงบราชการไทย)
-    -- คำนวณและเก็บไว้ตอนสร้าง/แก้ไขปีงบ ดู backend/utils/fiscalYear.js
+    -- คำนวณและเก็บไว้ตอนสร้าง/แก้ไขปีงบ ดู backend/src/utils/fiscalYear.js
     start_month CHAR(7) NOT NULL,
     end_month CHAR(7) NOT NULL,
     status ENUM('active','inactive') DEFAULT 'active'
@@ -92,7 +92,7 @@ CREATE TABLE devices (
 );
 
 -- print_transactions ต้องมี UNIQUE KEY (device_id, month) เพราะ
--- backend/routes/print-transactions.js ทั้งตอนบันทึกทีละรายการ (POST /)
+-- backend/src/routes/print-transactions.js ทั้งตอนบันทึกทีละรายการ (POST /)
 -- และบันทึกทีละหลายเครื่อง (POST /bulk) ใช้คำสั่ง
 --   INSERT ... ON DUPLICATE KEY UPDATE pages = VALUES(pages)
 -- ถ้าไม่มี UNIQUE KEY คู่นี้ คำสั่งข้างต้นจะไม่รู้ว่าแถวไหนซ้ำ และจะ INSERT
@@ -240,7 +240,7 @@ ON d.brand_id = br.id;
 -- Prototype User
 -- ==============================================================================
 
--- backend/routes/auth.js ใช้ bcrypt.compare(password, user.password) ตอน login
+-- backend/src/routes/auth.js ใช้ bcrypt.compare(password, user.password) ตอน login
 -- เดิม schema นี้ insert รหัสผ่านเป็น plaintext ('admin123' / 'user123')
 -- ทำให้ bcrypt.compare เทียบไม่ตรงและ login ไม่ผ่านทุกครั้ง (แม้กรอกรหัสถูก)
 -- ด้านล่างนี้แก้เป็นค่า hash จาก bcrypt (saltRounds = 10 ตาม backend/hash.js)

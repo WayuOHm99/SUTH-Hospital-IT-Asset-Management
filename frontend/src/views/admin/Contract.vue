@@ -1,9 +1,9 @@
 <script setup>
 import { ref, onMounted, computed } from "vue"
 import api from "../../services/api"
-import DataTable from "../../components/DataTable.vue"
-import { toastError } from "../../store/toast"
-import { askConfirm } from "../../store/confirmDialog"
+import DataTable from "../../components/tables/DataTable.vue"
+import { toastError } from "../../stores/toast"
+import { askConfirm } from "../../stores/confirmDialog"
 
 const contracts = ref([])
 const fiscalYears = ref([])

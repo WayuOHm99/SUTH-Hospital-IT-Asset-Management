@@ -1,8 +1,8 @@
 <script setup>
 import { ref, onMounted, watch, computed } from "vue";
 import api from "../services/api";
-import { fiscalYearState } from "../store/fiscalYear";
-import ChevronIcon from "../components/ChevronIcon.vue";
+import { fiscalYearState } from "../stores/fiscalYear";
+import ChevronIcon from "../components/ui/ChevronIcon.vue";
 
 const loading = ref(false);
 const error = ref(null);

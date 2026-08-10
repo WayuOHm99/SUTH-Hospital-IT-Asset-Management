@@ -2,12 +2,12 @@
 
 import { ref, onMounted, computed, watch } from "vue";
 import api from "../services/api";
-import { authState } from "../store/auth";
-import DataTable from "../components/DataTable.vue";
+import { authState } from "../stores/auth";
+import DataTable from "../components/tables/DataTable.vue";
 import AssetForm from "./AssetForm.vue";
-import SearchableSelect from "../components/SearchableSelect.vue";
-import { toastSuccess, toastError } from "../store/toast";
-import { askConfirm } from "../store/confirmDialog";
+import SearchableSelect from "../components/forms/SearchableSelect.vue";
+import { toastSuccess, toastError } from "../stores/toast";
+import { askConfirm } from "../stores/confirmDialog";
 
 
 const isAdmin = computed(() => authState.user?.role === "admin");

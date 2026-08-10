@@ -1,5 +1,5 @@
 import { computed } from "vue";
-import { modeState } from "../store/theme";
+import { modeState } from "../stores/theme";
 
 /**
  * useChartTheme.js — สีสำหรับกราฟ Chart.js ให้เข้ากับโหมดมืด/สว่าง
