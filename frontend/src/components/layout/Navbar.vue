@@ -27,8 +27,15 @@
       <div class="flex items-center gap-2">
         <label class="text-sm text-gray-500 hidden md:inline">ปีงบ</label>
 
+        <span
+          v-if="isReportPrototype"
+          class="rounded-lg border border-blue-200 bg-blue-50 px-2.5 py-1.5 text-sm font-medium text-blue-800"
+        >
+          2569 · ข้อมูลจำลอง
+        </span>
+
         <select
-          v-if="fiscalYearState.list.length"
+          v-else-if="fiscalYearState.list.length"
           :value="fiscalYearState.activeId ?? ''"
           @change="setActiveFiscalYear(Number($event.target.value))"
           class="border border-gray-200 rounded-lg px-2.5 py-1.5 text-sm bg-gray-100 hover:border-gray-300 transition-colors"
@@ -60,15 +67,20 @@
 
       <div class="hidden sm:flex items-center gap-2 pl-3 border-l border-gray-200">
         <span class="w-8 h-8 rounded-full bg-blue-100 text-[var(--brand-text)] flex items-center justify-center text-sm font-semibold shrink-0">
-          {{ (authState.user?.username || "?").charAt(0).toUpperCase() }}
+          {{ (isReportPrototype ? "P" : authState.user?.username || "?").charAt(0).toUpperCase() }}
         </span>
         <div class="leading-tight">
-          <p class="text-sm font-medium text-gray-700">{{ authState.user?.username }}</p>
-          <p class="text-xs text-gray-400">{{ authState.user?.role }}</p>
+          <p class="text-sm font-medium text-gray-700">
+            {{ isReportPrototype ? "ผู้ใช้ต้นแบบ" : authState.user?.username }}
+          </p>
+          <p class="text-xs text-gray-400">
+            {{ isReportPrototype ? "โหมดทดลอง" : authState.user?.role }}
+          </p>
         </div>
       </div>
 
       <button
+        v-if="!isReportPrototype"
         @click="logout"
         class="text-sm text-red-700 border border-red-200 px-3.5 py-1.5 rounded-lg hover:bg-red-50 transition-colors"
       >
@@ -79,14 +91,19 @@
 </template>
 
 <script setup>
-import { onMounted } from "vue";
-import { useRouter } from "vue-router";
+import { computed, onMounted } from "vue";
+import { useRoute, useRouter } from "vue-router";
 import { authState, clearAuth } from "../../stores/auth";
 import { fiscalYearState, loadFiscalYears, setActiveFiscalYear, resetFiscalYearState } from "../../stores/fiscalYear";
 import { openMobileSidebar } from "../../stores/ui";
 import ThemeSwitcher from "./ThemeSwitcher.vue";
 
 const router = useRouter();
+const route = useRoute();
+const isReportPrototype = computed(() => {
+  if (!import.meta.env.DEV || route.path !== "/report") return false;
+  return ["A", "B", "C"].includes(String(route.query.variant || "").toUpperCase());
+});
 
 const logout = () => {
   clearAuth();
@@ -94,5 +111,7 @@ const logout = () => {
   router.push("/login");
 };
 
-onMounted(loadFiscalYears);
+onMounted(() => {
+  if (!isReportPrototype.value) loadFiscalYears();
+});
 </script>

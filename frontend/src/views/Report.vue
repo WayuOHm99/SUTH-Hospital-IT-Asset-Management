@@ -1,7 +1,8 @@
 <script setup>
 import { computed, ref, watch } from "vue";
-import { RouterLink } from "vue-router";
+import { RouterLink, useRoute } from "vue-router";
 
+import CanonicalReportPrototype from "./prototypes/CanonicalReportPrototype.vue";
 import api from "../services/api";
 import {
   activeFiscalYear,
@@ -14,7 +15,14 @@ import { summarizeMonthlyReport } from "../utils/reportSummary";
 const rows = ref([]);
 const loading = ref(false);
 const error = ref("");
+const route = useRoute();
 let latestRequest = 0;
+
+const prototypeVariant = computed(() => {
+  if (!import.meta.env.DEV) return "";
+  const value = String(route.query.variant || "").toUpperCase();
+  return ["A", "B", "C"].includes(value) ? value : "";
+});
 
 const months = computed(() => fiscalYearMonths(activeFiscalYearRange.value));
 const report = computed(() => summarizeMonthlyReport(rows.value, months.value));
@@ -38,6 +46,8 @@ function formatMonth(month) {
 }
 
 async function loadReport() {
+  if (prototypeVariant.value) return;
+
   const requestId = ++latestRequest;
 
   if (!fiscalYearState.activeId || !months.value.length) {
@@ -69,14 +79,19 @@ async function loadReport() {
 }
 
 watch(
-  () => fiscalYearState.activeId,
+  [() => fiscalYearState.activeId, prototypeVariant],
   loadReport,
   { immediate: true }
 );
 </script>
 
 <template>
-  <section class="space-y-6">
+  <CanonicalReportPrototype
+    v-if="prototypeVariant"
+    :variant="prototypeVariant"
+  />
+
+  <section v-else class="space-y-6">
     <div class="flex flex-wrap items-end justify-between gap-3">
       <div>
         <p class="text-sm font-medium text-blue-600">รายงานภาพรวม</p>

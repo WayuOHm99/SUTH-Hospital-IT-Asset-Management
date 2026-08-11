@@ -228,6 +228,16 @@ const router = createRouter({
 
 router.beforeEach((to) => {
 
+  // PROTOTYPE ONLY — allow direct review without a backend session in dev.
+  const prototypeVariant = String(to.query.variant || "").toUpperCase();
+  if (
+    import.meta.env.DEV &&
+    to.path === "/report" &&
+    ["A", "B", "C"].includes(prototypeVariant)
+  ) {
+    return true;
+  }
+
 
   const token =
     localStorage.getItem("token");
