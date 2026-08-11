@@ -62,6 +62,36 @@ test("requires approval for common authorization names and behavior", () => {
   );
 });
 
+test("requires approval for security middleware and application hardening", () => {
+  const findings = classifySensitiveChanges([
+    {
+      filename: "backend/src/middleware/rateLimiter.js",
+      patch: "+ const max = 0;",
+    },
+    {
+      filename: "backend/src/app.js",
+      patch: "- app.use(helmet());\n- app.use(cors(corsOptions));\n- app.use(rateLimit(options));",
+    },
+    {
+      filename: "backend/src/config/http.js",
+      patch: " const corsOptions = {\n-  origin: allowedOrigins,\n+  origin: '*',",
+    },
+  ]);
+
+  assert.deepEqual(
+    new Set(findings.map((finding) => finding.filename)),
+    new Set([
+      "backend/src/middleware/rateLimiter.js",
+      "backend/src/app.js",
+      "backend/src/config/http.js",
+    ])
+  );
+  assert.ok(findings.every((finding) =>
+    finding.category === "authentication or security behavior" ||
+    finding.category === "authentication or authorization"
+  ));
+});
+
 test("requires approval for secret-bearing content in ordinary files", () => {
   const findings = classifySensitiveChanges([
     { filename: "backend/src/config/service.js", patch: "+ const apiKey = config.value;" },
@@ -116,6 +146,28 @@ test("requires approval for destructive alter and delete statements", () => {
   );
   assert.ok(findings.every((finding) =>
     finding.category === "destructive database operation"
+  ));
+});
+
+test("requires approval for destructive filesystem and shell operations", () => {
+  const findings = classifySensitiveChanges([
+    {
+      filename: "backend/src/controllers/uploads.js",
+      patch: "+ fs.rmSync(uploadPath, { recursive: true });",
+    },
+    {
+      filename: "backend/src/controllers/cleanup.js",
+      patch: "+ childProcess.execSync('rm -rf uploads');",
+    },
+    {
+      filename: "scripts/cleanup.ps1",
+      patch: "+ Remove-Item -Recurse -Force $targetPath",
+    },
+  ]);
+
+  assert.equal(findings.length, 3);
+  assert.ok(findings.every((finding) =>
+    finding.category === "destructive filesystem or process operation"
   ));
 });
 

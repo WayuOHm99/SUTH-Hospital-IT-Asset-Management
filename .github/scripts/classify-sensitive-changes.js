@@ -1,14 +1,28 @@
 const path = require("node:path");
 
-const authPathToken =
-  /(^|[\/._-])(auth|authentication|authorization|login|sign[-_]?in|permissions?|roles?|users?|accounts?|admin|security|sessions?|oauth|oidc|jwt|acl|rbac|polic(?:y|ies)|guards?|csrf|mfa|2fa)(?=[\/._-]|$)/i;
-const authNameTokens = new Set([
-  "auth", "authentication", "authorization", "login", "signin",
-  "permission", "permissions", "role", "roles", "user", "users",
+const authSecurityTokens = [
+  "auth", "authentication", "authorization", "login", "signin", "sign-in",
+  "sign_in", "permission", "permissions", "role", "roles", "user", "users",
   "account", "accounts", "admin", "security", "session", "sessions",
   "oauth", "oidc", "jwt", "acl", "rbac", "policy", "policies", "guard",
-  "guards", "csrf", "mfa", "2fa",
-]);
+  "guards", "csrf", "mfa", "2fa", "helmet", "cors", "ratelimit",
+  "express-rate-limit",
+];
+const authSecurityTokenPattern = authSecurityTokens.join("|");
+const authSecurityContentTokenPattern = authSecurityTokens
+  .filter((token) => !["user", "users", "account", "accounts"].includes(token))
+  .join("|");
+const authPathToken = new RegExp(
+  `(^|[\\/._-])(?:${authSecurityTokenPattern})(?=[\\/._-]|$)`,
+  "i"
+);
+const authNameTokens = new Set(authSecurityTokens);
+const authSecurityContentPattern = new RegExp(
+  `\\b(?:${authSecurityContentTokenPattern}|password|JWT_SECRET|` +
+    "access[_ -]?token|permission matrix|adminMiddleware|requireAdmin|" +
+    "requireAuth|corsOptions|helmetOptions|rateLimiter|rateLimitOptions)\\b",
+  "i"
+);
 const inspectableSourceExtension =
   /\.(cjs|js|json|mjs|ps1|sh|sql|tf|toml|ts|tsx|vue|ya?ml)$/i;
 
@@ -30,7 +44,9 @@ const pathRules = [
   },
   {
     category: "authentication or authorization",
-    matches: matchesAuthenticationPath,
+    matches: (file) =>
+      file.startsWith("backend/src/middleware/") ||
+      matchesAuthenticationPath(file),
   },
   {
     category: "security policy or automation guard",
@@ -63,8 +79,12 @@ const contentRules = [
     pattern: /\b(DROP\s+(?:DATABASE|SCHEMA|TABLE|COLUMN|INDEX|VIEW|TRIGGER|PROCEDURE|FUNCTION)|TRUNCATE(?:\s+TABLE)?|DELETE\s+FROM)\b/i,
   },
   {
+    category: "destructive filesystem or process operation",
+    pattern: /\b(?:fs(?:\.promises)?\.(?:rm|unlink|rmdir)(?:Sync)?|rimraf|Remove-Item\b[^\n]*(?:-Recurse|-Force)|(?:exec|execSync|spawn)\s*\([^\n]*(?:rm\s+-rf|Remove-Item|del\s+\/[fq]))/i,
+  },
+  {
     category: "authentication or security behavior",
-    pattern: /\b(authentication|authorization|password|JWT_SECRET|access[_ -]?token|permission matrix|adminMiddleware|requireAdmin|requireAuth|sessions?|oauth|oidc|jwt|acl|rbac|csrf|mfa)\b/i,
+    pattern: authSecurityContentPattern,
   },
   {
     category: "credential or secret behavior",
