@@ -1,15 +1,25 @@
 const path = require("node:path");
 
 const authPathToken =
-  /(^|[\/._-])(auth|authentication|authorization|login|sign[-_]?in|permissions?|roles?|users?|accounts?|admin|security)(?=[\/._-]|$)/i;
-const authNameToken =
-  /^(auth|login|signIn|permission|role|user|account|admin|security)(?:[A-Z]|$)|(?:Auth|Login|SignIn|Permission|Role|User|Account|Admin|Security)/;
+  /(^|[\/._-])(auth|authentication|authorization|login|sign[-_]?in|permissions?|roles?|users?|accounts?|admin|security|sessions?|oauth|oidc|jwt|acl|rbac|polic(?:y|ies)|guards?|csrf|mfa|2fa)(?=[\/._-]|$)/i;
+const authNameTokens = new Set([
+  "auth", "authentication", "authorization", "login", "signin",
+  "permission", "permissions", "role", "roles", "user", "users",
+  "account", "accounts", "admin", "security", "session", "sessions",
+  "oauth", "oidc", "jwt", "acl", "rbac", "policy", "policies", "guard",
+  "guards", "csrf", "mfa", "2fa",
+]);
 const inspectableSourceExtension =
   /\.(cjs|js|json|mjs|ps1|sh|sql|tf|toml|ts|tsx|vue|ya?ml)$/i;
 
 function matchesAuthenticationPath(file) {
   const basename = path.posix.basename(file).replace(/\.[^.]+$/, "");
-  return authPathToken.test(file) || authNameToken.test(basename);
+  const nameTokens = basename
+    .replace(/([a-z0-9])([A-Z])/g, "$1 $2")
+    .split(/[^A-Za-z0-9]+/)
+    .map((token) => token.toLowerCase());
+  return authPathToken.test(file) ||
+    nameTokens.some((token) => authNameTokens.has(token));
 }
 
 const pathRules = [
@@ -54,7 +64,11 @@ const contentRules = [
   },
   {
     category: "authentication or security behavior",
-    pattern: /\b(authentication|authorization|password|JWT_SECRET|access[_ -]?token|permission matrix)\b/i,
+    pattern: /\b(authentication|authorization|password|JWT_SECRET|access[_ -]?token|permission matrix|adminMiddleware|requireAdmin|requireAuth|sessions?|oauth|oidc|jwt|acl|rbac|csrf|mfa)\b/i,
+  },
+  {
+    category: "credential or secret behavior",
+    pattern: /\b(api[_ -]?key|client[_ -]?secret|private[_ -]?key|secret[_ -]?key|credentials?)\b/i,
   },
   {
     category: "production or deployment behavior",
@@ -67,10 +81,16 @@ function classifySensitiveChanges(files) {
 
   for (const file of files) {
     const filename = String(file.filename || "").replaceAll("\\", "/");
+    const candidatePaths = [filename];
+    if (file.previous_filename) {
+      candidatePaths.push(
+        String(file.previous_filename).replaceAll("\\", "/")
+      );
+    }
     const findingsBeforePathRules = findings.length;
 
     for (const rule of pathRules) {
-      if (rule.matches(filename)) {
+      if (candidatePaths.some((candidate) => rule.matches(candidate))) {
         findings.push({ filename, category: rule.category, source: "path" });
       }
     }

@@ -42,6 +42,9 @@ test("approval invalidation is isolated from other pull request events", () => {
   assert.match(workflow, /github\.rest\.pulls\.get/);
   assert.match(workflow, /comment\.user\?\.login === 'github-actions\[bot\]'/);
   assert.match(workflow, /approvedHead === currentHead/);
+  assert.match(workflow, /context\.payload\.sender\.type === 'User'/);
+  assert.match(workflow, /getCollaboratorPermissionLevel/);
+  assert.match(workflow, /\['admin', 'maintain', 'write'\]/);
 });
 
 test("unapproved sensitive pull requests are kept as drafts", () => {
@@ -50,6 +53,10 @@ test("unapproved sensitive pull requests are kept as drafts", () => {
   assert.match(workflow, /ready_for_review/);
   assert.match(workflow, /convertPullRequestToDraft/);
   assert.match(workflow, /Human approval is required before marking this PR ready/);
+  assert.match(workflow, /statuses: write/);
+  assert.match(workflow, /createCommitStatus/);
+  assert.match(workflow, /sha: currentHead/);
+  assert.match(workflow, /context: 'Sensitive change approval'/);
 });
 
 test("scheduled reviewer preserves human merge and approval boundaries", () => {
@@ -70,6 +77,9 @@ test("scheduled reviewer verifies the current revision before publishing", () =>
   assert.match(prompt, /head SHA differs\s+from\s+the reviewed head SHA/i);
   assert.match(prompt, /do not\s+publish a comment or result label/i);
   assert.match(prompt, /re-check every eligibility condition/i);
+  assert.match(prompt, /Immediately after publishing, re-fetch/i);
+  assert.match(prompt, /remove both result\s+labels/i);
+  assert.match(prompt, /marked review\s+comment records the current head SHA/i);
 });
 
 test("scheduled reviewer requires a dedicated least-privilege GitHub token", () => {
@@ -93,5 +103,8 @@ test("setup guide documents the free-tier draft fallback", () => {
     guide,
     /converts an\s+unapproved sensitive pull request to draft/i
   );
+  assert.doesNotMatch(guide, /free-tier fail-closed fallback/i);
+  assert.match(guide, /best-effort fallback/i);
+  assert.match(guide, /head-SHA commit status/i);
   assert.match(guide, /does not replace branch\s+protection/i);
 });

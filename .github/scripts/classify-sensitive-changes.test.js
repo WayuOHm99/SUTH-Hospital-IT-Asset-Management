@@ -45,6 +45,48 @@ test("requires approval for auth UI and admin files without patch text", () => {
   ));
 });
 
+test("requires approval for common authorization names and behavior", () => {
+  const findings = classifySensitiveChanges([
+    { filename: "backend/src/services/authenticationService.js", patch: "+ module.exports = service;" },
+    { filename: "backend/src/routes/devices.js", patch: "+ router.delete('/:id', adminMiddleware);" },
+    { filename: "backend/src/policies/rbac.js", patch: "+ const acl = new Map();" },
+  ]);
+
+  assert.deepEqual(
+    new Set(findings.map((finding) => finding.filename)),
+    new Set([
+      "backend/src/services/authenticationService.js",
+      "backend/src/routes/devices.js",
+      "backend/src/policies/rbac.js",
+    ])
+  );
+});
+
+test("requires approval for secret-bearing content in ordinary files", () => {
+  const findings = classifySensitiveChanges([
+    { filename: "backend/src/config/service.js", patch: "+ const apiKey = config.value;" },
+    { filename: "backend/src/config/provider.js", patch: "+ const clientSecret = settings.value;" },
+    { filename: "backend/src/config/crypto.js", patch: "+ const privateKey = process.env.VALUE;" },
+  ]);
+
+  assert.equal(findings.length, 3);
+  assert.ok(findings.every((finding) =>
+    finding.category === "credential or secret behavior"
+  ));
+});
+
+test("requires approval when a sensitive file is renamed", () => {
+  const findings = classifySensitiveChanges([{
+    filename: "frontend/src/views/Welcome.vue",
+    previous_filename: "frontend/src/views/Login.vue",
+    patch: "+ const title = 'Welcome';",
+  }]);
+
+  assert.ok(findings.some((finding) =>
+    finding.category === "authentication or authorization"
+  ));
+});
+
 test("requires approval when a patch contains destructive SQL", () => {
   const findings = classifySensitiveChanges([{
     filename: "docs/example.sql",

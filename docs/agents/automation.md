@@ -19,8 +19,9 @@ reviews eligible pull requests. A human remains the only merge authority.
 5. Claude addresses `codex-changes-requested` on the same branch and pushes.
    The update clears the old result; the next scheduled run reviews the new
    head SHA.
-6. When CI is green and `codex-pass` is present, Claude applies
-   `ready-for-human` and stops. Only a human may merge.
+6. When CI is green and `codex-pass` is present with the current head SHA in
+   the marked Codex review comment, Claude applies `ready-for-human` and stops.
+   Only a human may merge.
 
 ## Human approval boundary
 
@@ -35,10 +36,11 @@ The GitHub gate independently scans changed paths and patches. It applies
 draft, and fails when `human-approved` is absent. Agents may never add, remove,
 or work around `human-approved`; only the gate may remove a stale marker. Any
 new commit removes the label, and the gate also records the exact head SHA when
-a human adds it. Approval passes only when both the label and its recorded SHA
-match the current head, so event-order races cannot carry an old decision onto
-a new revision. A human must add `human-approved` and then mark the PR ready
-again.
+a GitHub user with repository write access adds it. Bot and GitHub App label
+events are rejected. Approval passes only when both the label and its recorded
+SHA match the current head, so event-order races cannot carry an old decision
+onto a new revision. A human must add `human-approved` and then mark the PR
+ready again.
 
 ## Claude terminal instruction
 
@@ -78,13 +80,18 @@ merging or sensitive work.
   merge disabled.
 
 This private GitHub Free repository cannot currently enable branch protection
-or rulesets. As a free-tier fail-closed fallback, the gate converts an
+or rulesets. As a free-tier best-effort fallback, the gate converts an
 unapproved sensitive pull request to draft; GitHub does not allow draft pull
 requests to merge ([GitHub Docs](https://docs.github.com/en/pull-requests/how-tos/create-pull-requests/changing-the-stage-of-a-pull-request)).
 The workflow also handles `ready_for_review`, so an unapproved sensitive PR is
 returned to draft. This does not replace branch protection: there is workflow
 latency, and maintainers must still verify the latest `human-approved`, CI, and
 Codex result before merging.
+
+The trusted `pull_request_target` gate publishes a head-SHA commit status named
+`Sensitive change approval`. When branch protection becomes available, require
+that head-SHA commit status, not the workflow job running against the default
+branch SHA.
 
 Create a dedicated fine-grained GitHub token for the Scheduled reviewer with
 access only to this repository and these repository permissions:

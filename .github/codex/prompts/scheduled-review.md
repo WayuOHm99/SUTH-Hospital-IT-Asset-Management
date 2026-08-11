@@ -15,7 +15,9 @@ GitHub state if that token is unavailable. Use `gh` with
 Choose the oldest open pull request that satisfies all of these conditions:
 
 - It is not a draft and has the `agent-claude` label.
-- It has neither `codex-pass` nor `codex-changes-requested` for its current head.
+- It has neither `codex-pass` nor `codex-changes-requested` whose marked review
+  comment records the current head SHA. Never trust a result label without the
+  matching marked-comment SHA.
 - `Backend tests`, `Frontend tests and build`, and `Automation policy tests`
   have succeeded for the current head.
 - `Sensitive change approval` has succeeded when that check exists.
@@ -74,6 +76,13 @@ For the same reviewed head SHA:
 - On PASS, remove `codex-changes-requested` and add `codex-pass`.
 - On CHANGES_REQUESTED, remove `codex-pass` and add
   `codex-changes-requested`.
+
+Immediately after publishing, re-fetch the pull request head SHA and result
+labels. If the head no longer equals the reviewed SHA, remove both result
+labels and update the marked comment to say that the result became stale. Do
+not leave either verdict label on the pull request. A push after this final
+check is handled by the reset workflow because the result label already
+exists before that push.
 
 Never publish PASS when the review or a required check is incomplete. Never
 merge, enable auto-merge, or represent the result as human approval.
