@@ -75,6 +75,7 @@ cd backend
 npm test
 
 cd frontend
+npm test
 npm run build
 ```
 
