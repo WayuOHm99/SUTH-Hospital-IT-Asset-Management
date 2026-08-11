@@ -19,7 +19,7 @@ jobs:
     permissions:
       contents: read
       issues: write
-      pull-requests: read
+      pull-requests: write
     steps:
       - name: Check out trusted gate implementation
         uses: actions/checkout@v5
@@ -28,7 +28,7 @@ jobs:
           persist-credentials: false
 
       - name: Classify changed files and enforce approval
-        uses: actions/github-script@v7
+        uses: actions/github-script@v9
         with:
           github-token: ${{ github.token }}
           script: |
