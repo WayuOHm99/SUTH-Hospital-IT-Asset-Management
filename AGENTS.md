@@ -59,3 +59,21 @@ Never commit `.env`, credentials, tokens, or production data. Keep MySQL credent
 - Get approval before schema/migration, auth/security, secrets, destructive-operation, or production work.
 - Summarize changed files, test results, and remaining risks.
 - For review requests, review only; edit files only when explicitly asked.
+
+## Agent skills
+
+### Issue tracker
+
+Track issues and specs in this repository's GitHub Issues. See
+`docs/agents/issue-tracker.md`.
+
+### Triage labels
+
+Use the standard `needs-triage`, `needs-info`, `ready-for-agent`,
+`ready-for-human`, and `wontfix` labels. See
+`docs/agents/triage-labels.md`.
+
+### Domain docs
+
+Use a single-context layout with a root `CONTEXT.md` and repository-level ADRs.
+See `docs/agents/domain.md`.
