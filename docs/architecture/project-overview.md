@@ -252,7 +252,7 @@ Admin สามารถจัดการข้อมูลอ้างอิ�
 - Chart.js รองรับธีมมืด/สว่าง
 - รองรับ reduced motion ผ่าน CSS
 
-หน้า `/report` มีอยู่ใน Router และเมนู แต่ `frontend/src/views/Report.vue` ปัจจุบันยังแสดงเพียงหัวข้อ `Report` ยังไม่มีฟังก์ชันรายงานจริง
+หน้า `/report` สรุปจำนวนหน้าที่บันทึก จำนวนหน้าสุทธิ ค่าใช้จ่าย และจำนวนเครื่องที่มีข้อมูล พร้อมตารางรายเดือนครบ 12 เดือนตามปีงบที่เลือก
 
 ## 4. สถาปัตยกรรมระบบ
 
@@ -752,7 +752,7 @@ Routes ที่ประกาศ:
 | `/expense` | `Expense.vue` | Main |
 | `/compare` | `Compare.vue` | Main |
 | `/by-department` | `ByDepartment.vue` | Main |
-| `/report` | `Report.vue` | Main แต่ยังเป็น placeholder |
+| `/report` | `Report.vue` | รายงานภาพรวมตามปีงบ |
 | `/print-transactions` | `PrintTransactions.vue` | Main |
 | `/admin/brands` | `admin/Brand.vue` | Admin |
 | `/admin/buildings` | `admin/Building.vue` | Admin |
@@ -811,7 +811,7 @@ Routes ที่ประกาศ:
 | `frontend/src/views/Compare.vue` | เปรียบเทียบหลายเดือน ตาราง metric และกราฟ |
 | `frontend/src/views/ByDepartment.vue` | Hierarchy ฝ่าย→แผนก→เครื่อง และกราฟแนวโน้ม |
 | `frontend/src/views/ImportDevices.vue` | Dropzone upload CSV/Excel และสรุปแถวที่สำเร็จ/ข้าม |
-| `frontend/src/views/Report.vue` | Placeholder หัวข้อ Report เท่านั้น |
+| `frontend/src/views/Report.vue` | KPI และตารางสรุปรายเดือนตามปีงบ |
 
 #### `frontend/src/views/admin/`
 
@@ -1009,17 +1009,16 @@ npm run preview
 
 ### 14.6 คุณภาพซอฟต์แวร์และการดูแลต่อ
 
-- Automated tests ครอบคลุม fiscal-year range และ dashboard module interface เบื้องต้น
-  แต่ยังไม่มี coverage สำหรับ auth, import, database queries และ authenticated API flows
-- `Report.vue` ยังไม่ทำงานจริง แม้มีเมนูรายงาน
-- ไม่มี Docker/CI/CD/deployment config หรือ environment config สำหรับ production
+- Automated tests ครอบคลุม fiscal-year range, dashboard module interface, API URL config
+  และการรวมยอดรายงานเบื้องต้น แต่ยังไม่มี coverage สำหรับ auth, import และ database queries
+- ไม่มี Docker/CI/CD/deployment config สำหรับ production
 - Frontend build และ backend health/404 smoke test ยังเป็น manual verification
 
 ## 15. บทสรุปเชิงผู้บริหาร
 
 โครงการนี้เป็นระบบศูนย์กลางสำหรับบริหารเครื่องพิมพ์และค่าใช้จ่ายการพิมพ์ของโรงพยาบาล โดยเชื่อมข้อมูลทรัพย์สิน สถานที่ หน่วยงาน สัญญา ปีงบ และยอดมิเตอร์เข้าด้วยกัน จุดประสงค์หลักคือทำให้ทีม IT และผู้บริหารเห็นข้อมูลเครื่องและค่าใช้จ่ายได้จากแหล่งเดียว ลดการรวมข้อมูลจาก Excel ด้วยมือ และรองรับการวิเคราะห์การใช้งานตามช่วงเวลาจริง
 
-ในด้านฟังก์ชัน ระบบมีแกนหลักค่อนข้างครบสำหรับ Prototype/ระบบภายใน ได้แก่ Login, Asset Registry, Master Data, Contract, Fiscal Year, Print Usage, Import, Dashboard, Expense และ Department/Monthly Comparison Report ส่วนที่ยังไม่สมบูรณ์คือหน้า Report จริง การทดสอบอัตโนมัติ การแยกสิทธิ์ staff/viewer และการ harden ด้าน Production/Security
+ในด้านฟังก์ชัน ระบบมีแกนหลักค่อนข้างครบสำหรับ Prototype/ระบบภายใน ได้แก่ Login, Asset Registry, Master Data, Contract, Fiscal Year, Print Usage, Import, Dashboard, Expense และรายงานภาพรวม/รายฝ่าย/เปรียบเทียบรายเดือน ส่วนที่ยังไม่สมบูรณ์คือ coverage การทดสอบอัตโนมัติ การแยกสิทธิ์ staff/viewer และการ harden ด้าน Production/Security
 
 ประเด็นทางเทคนิคที่ควรยึดเป็นหลักเมื่อพัฒนาต่อคือ:
 

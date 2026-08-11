@@ -2,9 +2,10 @@ import axios from "axios";
 import router from "../router";
 import { toastInfo } from "../stores/toast";
 import { clearAuth } from "../stores/auth";
+import { resolveApiBaseUrl } from "./apiConfig";
 
 const api = axios.create({
-  baseURL: "http://localhost:3000/api",
+  baseURL: resolveApiBaseUrl(import.meta.env.VITE_API_BASE_URL),
   headers: {
     "Content-Type": "application/json",
   },
