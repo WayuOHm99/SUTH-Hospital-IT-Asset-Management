@@ -383,7 +383,9 @@ change_percent = (current - previous) / previous × 100
 
 ## 6. รายการ Backend API
 
-Base URL ของ Frontend คือ `http://localhost:3000/api`
+Frontend ใช้ `/api` บน origin เดียวกันโดยปริยาย และอ่าน `VITE_API_BASE_URL`
+เมื่อ API อยู่คนละ origin; ระหว่างพัฒนา Vite จะ proxy `/api` ไปที่
+`http://localhost:3000`
 
 ### 6.1 Authentication และระบบพื้นฐาน
 
@@ -714,10 +716,10 @@ Admin upload Excel
 
 | Path | หน้าที่ |
 |---|---|
-| `frontend/package.json` | scripts `dev`, `build`, `preview` และ dependencies ของ SPA |
+| `frontend/package.json` | scripts `dev`, `test`, `build`, `preview` และ dependencies ของ SPA |
 | `frontend/package-lock.json` | lock dependency versions ของ Frontend |
 | `frontend/README.md` | คำสั่งพัฒนาและลิงก์กลับไปยังคู่มือระบบหลัก |
-| `frontend/vite.config.js` | เปิดใช้ Vue plugin และ Tailwind Vite plugin |
+| `frontend/vite.config.js` | เปิดใช้ Vue/Tailwind plugins และ development proxy จาก `/api` ไป Backend |
 | `frontend/index.html` | HTML shell, favicon, Thai language, Google Fonts, title และตั้งค่าโหมดสีก่อน render |
 
 #### `frontend/src/`
