@@ -1,0 +1,41 @@
+name: Review status reset
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, ready_for_review]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: review-status-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  reset:
+    name: Reset stale Codex status
+    if: github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: read
+      issues: write
+      pull-requests: write
+    steps:
+      - name: Remove previous result labels
+        uses: actions/github-script@v9
+        with:
+          github-token: ${{ github.token }}
+          script: |
+            const issue = {
+              ...context.repo,
+              issue_number: context.issue.number,
+            };
+
+            for (const name of ['codex-pass', 'codex-changes-requested']) {
+              try {
+                await github.rest.issues.removeLabel({ ...issue, name });
+              } catch (error) {
+                if (error.status !== 404) throw error;
+              }
+            }

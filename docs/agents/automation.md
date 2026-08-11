@@ -1,8 +1,8 @@
-# Claude to Codex automation
+# Claude to scheduled Codex review
 
 GitHub is the synchronization boundary. Claude implements one Issue and opens
-a pull request; CI and Codex review that pull request; a human remains the only
-merge authority.
+a pull request; GitHub runs deterministic gates; a local Codex scheduled task
+reviews eligible pull requests. A human remains the only merge authority.
 
 ## State machine
 
@@ -10,12 +10,15 @@ merge authority.
 2. Claude claims one Issue, creates a dedicated branch, implements only that
    scope, runs the required checks, commits, pushes, and opens a non-draft PR
    containing `Closes #<issue>` and the `agent-claude` label.
-3. GitHub runs CI, the sensitive-change gate, and Codex review.
-4. Codex maintains one PR comment and one of these labels:
+3. GitHub runs CI and the sensitive-change gate. A lightweight workflow removes
+   stale Codex result labels whenever the pull request head changes.
+4. The Codex scheduled task reviews at most one eligible PR per run and
+   maintains one PR comment and one of these labels:
    - `codex-pass`
    - `codex-changes-requested`
 5. Claude addresses `codex-changes-requested` on the same branch and pushes.
-   The update automatically triggers a fresh review.
+   The update clears the old result; the next scheduled run reviews the new
+   head SHA.
 6. When CI is green and `codex-pass` is present, Claude applies
    `ready-for-human` and stops. Only a human may merge.
 
@@ -53,9 +56,8 @@ This instruction is the explicit authorization for that Claude session to
 commit, push, and open PRs within the stated boundary. It does not authorize
 merging or sensitive work.
 
-## One-time GitHub setup
+## One-time setup
 
-- Repository secret `OPENAI_API_KEY` must exist.
 - Create the labels listed below if they do not exist:
   - `agent-claude`
   - `codex-pass`
@@ -69,10 +71,23 @@ merging or sensitive work.
   - `Sensitive change approval`
 - Require at least one human approval and keep automatic merge disabled.
 
+In the ChatGPT desktop app, create a Scheduled task for this repository. Use
+the contents of `.github/codex/prompts/scheduled-review.md` as its prompt, run
+it in an isolated worktree every 30 minutes while the team is working, and
+test the first run before relying on it. The computer must remain on and the
+desktop app must remain running for local scheduled work.
+
+See the official OpenAI Scheduled tasks documentation:
+https://learn.chatgpt.com/docs/automations/
+
+This path does not use `openai/codex-action` or an OpenAI API key. The scheduled
+review label is advisory: it is not a GitHub required check and never replaces
+human approval.
+
 ## Recovery
 
-- If Codex review fails operationally, inspect the `Codex PR review` workflow;
-  do not treat the absence of a review as a pass.
+- If the scheduled task is unavailable or fails operationally, run the same
+  prompt manually in Codex; do not treat the absence of a review as a pass.
 - If Claude and Codex repeat the same blocker three times, apply
   `ready-for-human` and stop the loop.
 - If two agents claim the same Issue, keep the earliest linked PR and close the
