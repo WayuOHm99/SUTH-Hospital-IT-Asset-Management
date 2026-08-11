@@ -1,0 +1,196 @@
+name: Sensitive change approval
+
+on:
+  pull_request_target:
+    types: [opened, synchronize, reopened, edited, labeled, unlabeled, ready_for_review]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: sensitive-approval-${{ github.event.pull_request.number }}-${{ github.event.action }}
+  cancel-in-progress: true
+
+jobs:
+  approval:
+    name: Evaluate sensitive change approval
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: read
+      issues: write
+      pull-requests: write
+      statuses: write
+    steps:
+      - name: Check out trusted gate implementation
+        uses: actions/checkout@v5
+        with:
+          ref: ${{ github.event.repository.default_branch }}
+          persist-credentials: false
+
+      - name: Classify changed files and enforce approval
+        uses: actions/github-script@v9
+        with:
+          github-token: ${{ github.token }}
+          script: |
+            const path = require('node:path');
+            const classifierPath = path.join(
+              process.env.GITHUB_WORKSPACE,
+              '.github/scripts/classify-sensitive-changes.js'
+            );
+            const {
+              classifySensitiveChanges,
+              evaluateApproval,
+            } = require(classifierPath);
+            const issue = {
+              ...context.repo,
+              issue_number: context.issue.number,
+            };
+            const approvalMarkerPrefix = '<!-- human-approved-head:';
+            const { data: currentPull } = await github.rest.pulls.get({
+              ...context.repo,
+              pull_number: context.issue.number,
+            });
+            const currentHead = currentPull.head.sha;
+            const setHeadStatus = (state, description) =>
+              github.rest.repos.createCommitStatus({
+                ...context.repo,
+                sha: currentHead,
+                state,
+                context: 'Sensitive change approval',
+                description,
+                target_url: `https://github.com/${context.repo.owner}/` +
+                  `${context.repo.repo}/actions/runs/${context.runId}`,
+              });
+
+            await setHeadStatus('pending', 'Evaluating sensitive changes');
+
+            if (
+              context.payload.action === 'labeled' &&
+              context.payload.label?.name === 'human-approved'
+            ) {
+              const humanActor = context.payload.sender.type === 'User';
+              let actorCanApprove = false;
+              if (humanActor) {
+                const { data: permission } =
+                  await github.rest.repos.getCollaboratorPermissionLevel({
+                    ...context.repo,
+                    username: context.payload.sender.login,
+                  });
+                actorCanApprove = ['admin', 'maintain', 'write']
+                  .includes(permission.permission);
+              }
+
+              if (!actorCanApprove) {
+                await github.rest.issues.removeLabel({
+                  ...issue,
+                  name: 'human-approved',
+                });
+                await setHeadStatus(
+                  'failure',
+                  'human-approved must be added by a human with write access'
+                );
+                core.setFailed(
+                  'Rejected human-approved from a bot or non-writer.'
+                );
+                return;
+              }
+
+              const approvedEventHead = context.payload.pull_request.head.sha;
+              await github.rest.issues.createComment({
+                ...issue,
+                body: `${approvalMarkerPrefix}${approvedEventHead} -->\n` +
+                  `Human approval recorded for head \`${approvedEventHead}\`.`,
+              });
+            }
+
+            const files = await github.paginate(
+              github.rest.pulls.listFiles,
+              {
+                ...context.repo,
+                pull_number: context.issue.number,
+                per_page: 100,
+              }
+            );
+            const findings = classifySensitiveChanges(files);
+            let labels = currentPull.labels.map((label) => label.name);
+
+            if (
+              context.payload.action === 'synchronize' &&
+              labels.includes('human-approved')
+            ) {
+              await github.rest.issues.removeLabel({
+                ...issue,
+                name: 'human-approved',
+              });
+              labels = labels.filter((label) => label !== 'human-approved');
+              core.notice('A new commit invalidated the previous human approval.');
+            }
+
+            const comments = await github.paginate(
+              github.rest.issues.listComments,
+              {
+                ...issue,
+                per_page: 100,
+              }
+            );
+            const approvedHead = comments
+              .filter((comment) =>
+                comment.user?.login === 'github-actions[bot]'
+              )
+              .map((comment) => comment.body?.match(
+                /<!-- human-approved-head:([0-9a-f]{40}) -->/i
+              )?.[1])
+              .find((head) => head === currentHead);
+            const effectiveLabels = approvedHead === currentHead
+              ? labels
+              : labels.filter((label) => label !== 'human-approved');
+            const approval = evaluateApproval(findings, effectiveLabels);
+
+            if (findings.length > 0 && !approval.manuallyRequired) {
+              await github.rest.issues.addLabels({
+                ...issue,
+                labels: ['human-approval-required'],
+              });
+            }
+
+            if (!approval.requiresApproval) {
+              await setHeadStatus('success', 'No sensitive approval required');
+              core.notice('No sensitive change requiring human approval was detected.');
+              return;
+            }
+
+            const summary = findings.length > 0
+              ? findings.map((finding) =>
+                  `${finding.filename}: ${finding.category}`
+                ).join('\n')
+              : 'The human-approval-required label was added manually.';
+
+            if (!approval.passes) {
+              await setHeadStatus('failure', 'Human approval is required');
+              if (!currentPull.draft) {
+                await github.graphql(
+                  `mutation($pullRequestId: ID!) {
+                    convertPullRequestToDraft(input: {
+                      pullRequestId: $pullRequestId
+                    }) {
+                      pullRequest { isDraft }
+                    }
+                  }`,
+                  {
+                    pullRequestId: currentPull.node_id,
+                  }
+                );
+                core.notice(
+                  'Human approval is required before marking this PR ready. Converted it to draft.'
+                );
+              }
+
+              core.setFailed(
+                `Human approval is required. Only a human may add human-approved.\n${summary}`
+              );
+              return;
+            }
+
+            await setHeadStatus('success', 'Human approval matches this head');
+            core.notice(`Human approval marker found.\n${summary}`);
