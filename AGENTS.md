@@ -60,6 +60,32 @@ Never commit `.env`, credentials, tokens, or production data. Keep MySQL credent
 - Summarize changed files, test results, and remaining risks.
 - For review requests, review only; edit files only when explicitly asked.
 
+## Automated Agent Handoff
+
+- GitHub Issues and pull requests are the synchronization boundary between
+  Claude and Codex. Agents must not coordinate by editing the same checkout.
+- Claude may claim only an Issue labeled `ready-for-agent`, and must use one
+  dedicated branch and pull request per Issue.
+- Before editing, Claude must stop and apply `ready-for-human` when the Issue
+  may touch schema/migrations, authentication, authorization, security,
+  secrets, destructive operations, deployment, or production.
+- Only a human may add or remove the `human-approved` label. Agents must never
+  add it, request it through automation, or weaken the approval gate.
+- Claude must not merge. A passing Codex review and green CI mean the pull
+  request is ready for human review, not approved for merge.
+- Follow the operating protocol in `docs/agents/automation.md`.
+
+## Code Review Rules
+
+- Treat changes outside the originating Issue as a blocking scope violation.
+- Flag any committed credential, raw internal error, weakened authorization,
+  bypassed validation, or workflow permission broader than the job requires.
+- For schema/migration, authentication, security, secrets, destructive,
+  deployment, or production changes, require the `human-approved` label and
+  explicit human authorization recorded on the Issue or pull request.
+- Never treat automated review as a substitute for tests, branch protection,
+  or human approval.
+
 ## Agent skills
 
 ### Issue tracker

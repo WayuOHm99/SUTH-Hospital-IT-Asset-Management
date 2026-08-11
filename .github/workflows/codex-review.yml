@@ -1,0 +1,129 @@
+name: Codex PR review
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, ready_for_review]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: codex-review-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  reset:
+    name: Reset stale Codex status
+    if: github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: read
+      issues: write
+    steps:
+      - name: Remove previous result labels
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ github.token }}
+          script: |
+            const issue = {
+              ...context.repo,
+              issue_number: context.issue.number,
+            };
+
+            for (const name of ['codex-pass', 'codex-changes-requested']) {
+              try {
+                await github.rest.issues.removeLabel({ ...issue, name });
+              } catch (error) {
+                if (error.status !== 404) throw error;
+              }
+            }
+
+  review:
+    name: Codex review
+    needs: reset
+    if: >-
+      github.event.pull_request.draft == false &&
+      github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    outputs:
+      final_message: ${{ steps.run_codex.outputs.final-message }}
+    steps:
+      - name: Check out pull request merge commit
+        uses: actions/checkout@v5
+        with:
+          ref: refs/pull/${{ github.event.pull_request.number }}/merge
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Run Codex review
+        id: run_codex
+        uses: openai/codex-action@v1
+        with:
+          openai-api-key: ${{ secrets.OPENAI_API_KEY }}
+          prompt-file: .github/codex/prompts/review.md
+          output-file: codex-review.md
+          sandbox: read-only
+
+  publish:
+    name: Publish Codex review
+    needs: review
+    if: >-
+      always() &&
+      needs.review.result == 'success' &&
+      needs.review.outputs.final_message != ''
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: read
+      issues: write
+      pull-requests: write
+    steps:
+      - name: Update review comment and status label
+        uses: actions/github-script@v7
+        env:
+          CODEX_FINAL_MESSAGE: ${{ needs.review.outputs.final_message }}
+        with:
+          github-token: ${{ github.token }}
+          script: |
+            const marker = '<!-- codex-automated-review -->';
+            const review = process.env.CODEX_FINAL_MESSAGE.trim().slice(0, 60000);
+            const body = `${marker}\n## Codex automated review\n\n${review}`;
+            const issue = {
+              ...context.repo,
+              issue_number: context.issue.number,
+            };
+
+            const comments = await github.paginate(
+              github.rest.issues.listComments,
+              { ...issue, per_page: 100 }
+            );
+            const existing = comments.find((comment) =>
+              comment.user?.type === 'Bot' && comment.body?.includes(marker)
+            );
+
+            if (existing) {
+              await github.rest.issues.updateComment({
+                ...context.repo,
+                comment_id: existing.id,
+                body,
+              });
+            } else {
+              await github.rest.issues.createComment({ ...issue, body });
+            }
+
+            const pass = /^VERDICT:\s*PASS\b/m.test(review);
+            const addLabel = pass ? 'codex-pass' : 'codex-changes-requested';
+            const removeLabel = pass ? 'codex-changes-requested' : 'codex-pass';
+
+            try {
+              await github.rest.issues.removeLabel({ ...issue, name: removeLabel });
+            } catch (error) {
+              if (error.status !== 404) throw error;
+            }
+
+            await github.rest.issues.addLabels({
+              ...issue,
+              labels: [addLabel],
+            });
