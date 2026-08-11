@@ -2,13 +2,13 @@ name: Sensitive change approval
 
 on:
   pull_request_target:
-    types: [opened, synchronize, reopened, edited, labeled, unlabeled]
+    types: [opened, synchronize, reopened, edited, labeled, unlabeled, ready_for_review]
 
 permissions:
   contents: read
 
 concurrency:
-  group: sensitive-approval-${{ github.event.pull_request.number }}
+  group: sensitive-approval-${{ github.event.pull_request.number }}-${{ github.event.action }}
   cancel-in-progress: true
 
 jobs:
@@ -45,6 +45,25 @@ jobs:
               ...context.repo,
               issue_number: context.issue.number,
             };
+            const approvalMarkerPrefix = '<!-- human-approved-head:';
+
+            if (
+              context.payload.action === 'labeled' &&
+              context.payload.label?.name === 'human-approved'
+            ) {
+              const approvedEventHead = context.payload.pull_request.head.sha;
+              await github.rest.issues.createComment({
+                ...issue,
+                body: `${approvalMarkerPrefix}${approvedEventHead} -->\n` +
+                  `Human approval recorded for head \`${approvedEventHead}\`.`,
+              });
+            }
+
+            const { data: currentPull } = await github.rest.pulls.get({
+              ...context.repo,
+              pull_number: context.issue.number,
+            });
+            const currentHead = currentPull.head.sha;
             const files = await github.paginate(
               github.rest.pulls.listFiles,
               {
@@ -54,7 +73,7 @@ jobs:
               }
             );
             const findings = classifySensitiveChanges(files);
-            let labels = context.payload.pull_request.labels.map((label) => label.name);
+            let labels = currentPull.labels.map((label) => label.name);
 
             if (
               context.payload.action === 'synchronize' &&
@@ -68,7 +87,25 @@ jobs:
               core.notice('A new commit invalidated the previous human approval.');
             }
 
-            const approval = evaluateApproval(findings, labels);
+            const comments = await github.paginate(
+              github.rest.issues.listComments,
+              {
+                ...issue,
+                per_page: 100,
+              }
+            );
+            const approvedHead = comments
+              .filter((comment) =>
+                comment.user?.login === 'github-actions[bot]'
+              )
+              .map((comment) => comment.body?.match(
+                /<!-- human-approved-head:([0-9a-f]{40}) -->/i
+              )?.[1])
+              .find((head) => head === currentHead);
+            const effectiveLabels = approvedHead === currentHead
+              ? labels
+              : labels.filter((label) => label !== 'human-approved');
+            const approval = evaluateApproval(findings, effectiveLabels);
 
             if (findings.length > 0 && !approval.manuallyRequired) {
               await github.rest.issues.addLabels({
@@ -89,6 +126,24 @@ jobs:
               : 'The human-approval-required label was added manually.';
 
             if (!approval.passes) {
+              if (!currentPull.draft) {
+                await github.graphql(
+                  `mutation($pullRequestId: ID!) {
+                    convertPullRequestToDraft(input: {
+                      pullRequestId: $pullRequestId
+                    }) {
+                      pullRequest { isDraft }
+                    }
+                  }`,
+                  {
+                    pullRequestId: currentPull.node_id,
+                  }
+                );
+                core.notice(
+                  'Human approval is required before marking this PR ready. Converted it to draft.'
+                );
+              }
+
               core.setFailed(
                 `Human approval is required. Only a human may add human-approved.\n${summary}`
               );

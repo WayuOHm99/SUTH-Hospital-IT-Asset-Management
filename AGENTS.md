@@ -69,8 +69,9 @@ Never commit `.env`, credentials, tokens, or production data. Keep MySQL credent
 - Before editing, Claude must stop and apply `ready-for-human` when the Issue
   may touch schema/migrations, authentication, authorization, security,
   secrets, destructive operations, deployment, or production.
-- Only a human may add or remove the `human-approved` label. Agents must never
-  add it, request it through automation, or weaken the approval gate.
+- Only a human may add the `human-approved` label. The approval gate removes it
+  when the pull request head changes; agents must never add or remove it,
+  request it through automation, or weaken the approval gate.
 - Claude must not merge. A passing scheduled Codex review and green CI mean the
   pull request is ready for human review, not approved for merge.
 - Follow the operating protocol in `docs/agents/automation.md`.

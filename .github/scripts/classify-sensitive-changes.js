@@ -1,5 +1,17 @@
 const path = require("node:path");
 
+const authPathToken =
+  /(^|[\/._-])(auth|authentication|authorization|login|sign[-_]?in|permissions?|roles?|users?|accounts?|admin|security)(?=[\/._-]|$)/i;
+const authNameToken =
+  /^(auth|login|signIn|permission|role|user|account|admin|security)(?:[A-Z]|$)|(?:Auth|Login|SignIn|Permission|Role|User|Account|Admin|Security)/;
+const inspectableSourceExtension =
+  /\.(cjs|js|json|mjs|ps1|sh|sql|tf|toml|ts|tsx|vue|ya?ml)$/i;
+
+function matchesAuthenticationPath(file) {
+  const basename = path.posix.basename(file).replace(/\.[^.]+$/, "");
+  return authPathToken.test(file) || authNameToken.test(basename);
+}
+
 const pathRules = [
   {
     category: "database schema or migration",
@@ -8,9 +20,7 @@ const pathRules = [
   },
   {
     category: "authentication or authorization",
-    matches: (file) =>
-      /(^|\/)(auth|authentication|authorization|permissions?|roles?|users?)(\/|\.|-)/i.test(file) ||
-      /^backend\/src\/middleware\/(auth|admin)Middleware\.js$/i.test(file),
+    matches: matchesAuthenticationPath,
   },
   {
     category: "security policy or automation guard",
@@ -40,7 +50,7 @@ const pathRules = [
 const contentRules = [
   {
     category: "destructive database operation",
-    pattern: /\b(DROP\s+(?:DATABASE|SCHEMA|TABLE)|TRUNCATE\s+TABLE)\b/i,
+    pattern: /\b(DROP\s+(?:DATABASE|SCHEMA|TABLE|COLUMN|INDEX|VIEW|TRIGGER|PROCEDURE|FUNCTION)|TRUNCATE(?:\s+TABLE)?|DELETE\s+FROM)\b/i,
   },
   {
     category: "authentication or security behavior",
@@ -57,6 +67,7 @@ function classifySensitiveChanges(files) {
 
   for (const file of files) {
     const filename = String(file.filename || "").replaceAll("\\", "/");
+    const findingsBeforePathRules = findings.length;
 
     for (const rule of pathRules) {
       if (rule.matches(filename)) {
@@ -64,7 +75,19 @@ function classifySensitiveChanges(files) {
       }
     }
 
-    const patch = file.patch || "";
+    if (
+      findings.length === findingsBeforePathRules &&
+      typeof file.patch !== "string" &&
+      inspectableSourceExtension.test(filename)
+    ) {
+      findings.push({
+        filename,
+        category: "source change without inspectable patch",
+        source: "patch",
+      });
+    }
+
+    const patch = typeof file.patch === "string" ? file.patch : "";
     for (const rule of contentRules) {
       if (rule.pattern.test(patch)) {
         findings.push({ filename, category: rule.category, source: "content" });

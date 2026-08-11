@@ -31,10 +31,14 @@ It applies `ready-for-human`, explains the decision needed on the Issue, and
 waits for a human to add `human-approved`.
 
 The GitHub gate independently scans changed paths and patches. It applies
-`human-approval-required` and fails when `human-approved` is absent. Agents may
-never add, remove, or work around `human-approved`. Any new commit removes the
-previous `human-approved` marker, so the human decision always applies to the
-latest revision.
+`human-approval-required`, converts an unapproved sensitive pull request to
+draft, and fails when `human-approved` is absent. Agents may never add, remove,
+or work around `human-approved`; only the gate may remove a stale marker. Any
+new commit removes the label, and the gate also records the exact head SHA when
+a human adds it. Approval passes only when both the label and its recorded SHA
+match the current head, so event-order races cannot carry an old decision onto
+a new revision. A human must add `human-approved` and then mark the PR ready
+again.
 
 ## Claude terminal instruction
 
@@ -64,12 +68,35 @@ merging or sensitive work.
   - `codex-changes-requested`
   - `human-approval-required`
   - `human-approved`
-- Protect `main` and require these checks after the workflows have run once:
+- When the repository plan supports branch protection or rulesets, protect
+  `main` and require these checks after the workflows have run once:
   - `Backend tests`
   - `Frontend tests and build`
   - `Automation policy tests`
   - `Sensitive change approval`
-- Require at least one human approval and keep automatic merge disabled.
+- When supported, require at least one human approval. Always keep automatic
+  merge disabled.
+
+This private GitHub Free repository cannot currently enable branch protection
+or rulesets. As a free-tier fail-closed fallback, the gate converts an
+unapproved sensitive pull request to draft; GitHub does not allow draft pull
+requests to merge ([GitHub Docs](https://docs.github.com/en/pull-requests/how-tos/create-pull-requests/changing-the-stage-of-a-pull-request)).
+The workflow also handles `ready_for_review`, so an unapproved sensitive PR is
+returned to draft. This does not replace branch protection: there is workflow
+latency, and maintainers must still verify the latest `human-approved`, CI, and
+Codex result before merging.
+
+Create a dedicated fine-grained GitHub token for the Scheduled reviewer with
+access only to this repository and these repository permissions:
+
+- Actions: read
+- Contents: read
+- Issues: write
+- Pull requests: write
+
+Give it no Administration or Contents write permission, never commit it, and
+provide it to the Scheduled task only as `GH_TOKEN`. The Scheduled reviewer
+must stop rather than fall back to a broader stored `gh` credential.
 
 In the ChatGPT desktop app, create a Scheduled task for this repository. Use
 the contents of `.github/codex/prompts/scheduled-review.md` as its prompt, run

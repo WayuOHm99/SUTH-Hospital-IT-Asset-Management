@@ -7,8 +7,10 @@ approve, merge, close a pull request, or add or remove `human-approved`.
 
 ## Select one pull request
 
-Use `gh` with `-R WayuOHm99/SUTH-Hospital-IT-Asset-Management` for every GitHub
-operation. Stop without changing GitHub state if authentication is unavailable.
+Require a dedicated fine-grained `GH_TOKEN` in the Scheduled task environment.
+Do not fall back to the user's stored `gh` credential. Stop without changing
+GitHub state if that token is unavailable. Use `gh` with
+`-R WayuOHm99/SUTH-Hospital-IT-Asset-Management` for every GitHub operation.
 
 Choose the oldest open pull request that satisfies all of these conditions:
 
@@ -55,6 +57,13 @@ state what was verified and any residual test gap. Include the exact reviewed
 head SHA.
 
 ## Publish the result
+
+Immediately before publishing, re-fetch the pull request head SHA, draft state,
+labels, and check rollup. Re-check every eligibility condition from the
+selection step against that fresh state. If the current head SHA differs from
+the reviewed head SHA, or any eligibility condition no longer holds, do not
+publish a comment or result label. Report that the review became stale and
+stop; a later run must review the new head.
 
 Maintain one pull request comment containing the marker
 `<!-- codex-scheduled-review -->`, the verdict, and the reviewed head SHA.
