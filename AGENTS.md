@@ -50,13 +50,14 @@ Never commit `.env`, credentials, tokens, or production data. Keep MySQL credent
 ## Team Workflow
 
 - Two developers; AI-assisted workflow.
-- Start every development task from a GitHub Issue and dedicated branch linked to it; never edit or commit on `main`.
+- Start every development task from a GitHub Issue with exactly one dedicated
+  branch and one pull request; never edit or commit on `main`.
 - Before editing, check the branch and `git status`; on `main`, stop and notify the user.
 - Read relevant context, analyze the task, and propose a plan before editing.
 - Stay within the Issue scope; do not fix unrelated code.
 - Before committing, inspect `git diff` and run relevant tests/checks; report anything untested.
-- Do not commit, push, merge, delete branches, deploy, or change production without explicit user instruction.
-- Get approval before schema/migration, auth/security, secrets, destructive-operation, or production work.
+- When the user invokes `/implement #<issue>`, follow the authorized end-to-end
+  delivery loop and approval boundaries in `docs/agents/implement-delivery.md`.
 - Summarize changed files, test results, and remaining risks.
 - For review requests, review only; edit files only when explicitly asked.
 
