@@ -50,31 +50,14 @@ Never commit `.env`, credentials, tokens, or production data. Keep MySQL credent
 ## Team Workflow
 
 - Two developers; AI-assisted workflow.
-- Start every development task from a GitHub Issue and dedicated branch linked to it; never edit or commit on `main`.
+- Start every development task from a GitHub Issue with exactly one dedicated
+  branch and one pull request; never edit or commit on `main`.
 - Before editing, check the branch and `git status`; on `main`, stop and notify the user.
 - Read relevant context, analyze the task, and propose a plan before editing.
 - Stay within the Issue scope; do not fix unrelated code.
 - Before committing, inspect `git diff` and run relevant tests/checks; report anything untested.
-- Treat `/implement #<issue>` as explicit authorization to deliver that Issue
-  end to end. Within its stated scope, edit, test, review, commit, push, open or
-  update its pull request, monitor CI and review results, merge after required
-  checks and approval gates pass, deploy through the documented production
-  procedure, and run production smoke tests.
-- Keep ownership of the delivery loop. Diagnose, fix, and repeat when a test,
-  build, review, CI check, deployment, or smoke test fails; stop only when every
-  required check passes or a genuine blocker is documented.
-- An Issue must explicitly name any schema/migration, authentication,
-  authorization, security, deployment, or production scope. Its `/implement`
-  invocation authorizes scoped, reversible work, including backward-compatible
-  migrations tested against both fresh-install and ordered-migration paths.
-- Get fresh human approval before an irreversible or destructive migration,
-  production data rewrite or deletion, secret disclosure or rotation, bypass
-  of repository protections, undocumented production operation, or expansion
-  beyond the Issue scope.
-- For deployable changes, human acceptance follows a successful production
-  deployment and smoke test. Missing production access, credentials, rollback
-  prerequisites, or a documented deployment procedure is a blocker, not
-  permission to improvise.
+- When the user invokes `/implement #<issue>`, follow the authorized end-to-end
+  delivery loop and approval boundaries in `docs/agents/implement-delivery.md`.
 - Summarize changed files, test results, and remaining risks.
 - For review requests, review only; edit files only when explicitly asked.
 
