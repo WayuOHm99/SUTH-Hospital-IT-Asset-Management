@@ -6,12 +6,11 @@ recorded scope.
 
 ## Delivery loop
 
-1. Confirm that the Issue is agent-ready, the current branch is its only
-   dedicated branch, and it has or will have exactly one pull request. The
-   Issue must explicitly name any schema/migration, authentication,
+1. Complete the repository's Team Workflow preconditions. The Issue must
+   explicitly name any schema/migration, authentication,
    authorization, security, deployment, or production scope.
-2. Implement only the acceptance criteria. Use TDD where practical, run the
-   relevant tests and builds, inspect the diff, and complete code review.
+2. Drive TDD where practical and complete the repository's Testing Guidelines,
+   diff inspection, and code review requirements.
 3. Commit and push the work, then open or update the Issue's pull request.
    Monitor review results and every required CI check. Diagnose, fix, and repeat
    the applicable step whenever a test, build, review, or CI check fails.
@@ -30,9 +29,9 @@ planning Issue.
 ## Migrations
 
 `/implement` authorizes a required backward-compatible migration when the Issue
-names it. Verify both a fresh installation and the ordered migration path,
-including Thai fiscal-year boundaries where relevant. Document backup and
-rollback considerations in the pull request before merge.
+names it. Complete the database checks in the repository's Testing Guidelines
+and document backup and rollback considerations in the pull request before
+merge.
 
 ## Fresh approval gates
 
