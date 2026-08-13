@@ -13,6 +13,8 @@
 // เพื่อให้ routes อื่นๆ อ่านค่าที่เก็บไว้ได้ตรงๆ ไม่ต้องคำนวณซ้ำทุกครั้ง)
 
 const BE_OFFSET = 543;
+const MIN_FISCAL_YEAR_BE = 1544;
+const MAX_FISCAL_YEAR_BE = 9999;
 
 /**
  * แปลงปีงบ พ.ศ. เป็นช่วงเดือน "YYYY-MM" (ค.ศ.) ที่ปีงบนั้นครอบคลุม (รวมทั้งสองปลาย)
@@ -21,7 +23,11 @@ const BE_OFFSET = 543;
  */
 function getFiscalYearRange(beYear) {
   const y = Number(beYear);
-  if (!Number.isInteger(y) || y < BE_OFFSET) {
+  if (
+    !Number.isInteger(y) ||
+    y < MIN_FISCAL_YEAR_BE ||
+    y > MAX_FISCAL_YEAR_BE
+  ) {
     throw new Error(`ปีงบไม่ถูกต้อง: ${beYear}`);
   }
 
@@ -34,4 +40,9 @@ function getFiscalYearRange(beYear) {
   };
 }
 
-module.exports = { getFiscalYearRange, BE_OFFSET };
+module.exports = {
+  getFiscalYearRange,
+  BE_OFFSET,
+  MIN_FISCAL_YEAR_BE,
+  MAX_FISCAL_YEAR_BE,
+};

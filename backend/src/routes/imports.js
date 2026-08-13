@@ -1,23 +1,24 @@
 const express = require("express");
+const fs = require("fs");
 const multer = require("multer");
 const router = express.Router();
 
 const authMiddleware = require("../middleware/authMiddleware");
 const adminMiddleware = require("../middleware/adminMiddleware");
 const importController = require("../controllers/importController");
+const {
+  MAX_IMPORT_FILE_SIZE,
+  IMPORT_ALLOWED_MIME_TYPES,
+  IMPORT_ALLOWED_EXTENSIONS,
+  importFileSchema,
+} = require("../modules/validation/schemas");
+const { sendValidationError } = require("../utils/httpError");
 
 // จำกัดขนาดไฟล์ (5MB) และรับเฉพาะไฟล์ Excel/CSV กัน disk เต็ม/อัปโหลดไฟล์แปลกปลอม
-const ALLOWED_MIME_TYPES = [
-  "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", // .xlsx
-  "application/vnd.ms-excel", // .xls
-  "text/csv",
-];
-const ALLOWED_EXTENSIONS = [".xlsx", ".xls", ".csv"];
-
 const upload = multer({
   dest: "uploads/",
   limits: {
-    fileSize: 5 * 1024 * 1024, // 5MB
+    fileSize: MAX_IMPORT_FILE_SIZE,
   },
   fileFilter: (req, file, cb) => {
     const ext = file.originalname
@@ -25,11 +26,11 @@ const upload = multer({
       .toLowerCase();
 
     const isAllowed =
-      ALLOWED_MIME_TYPES.includes(file.mimetype) ||
-      ALLOWED_EXTENSIONS.includes(ext);
+      IMPORT_ALLOWED_MIME_TYPES.includes(file.mimetype) ||
+      IMPORT_ALLOWED_EXTENSIONS.includes(ext);
 
     if (!isAllowed) {
-      return cb(new Error("รองรับเฉพาะไฟล์ .xlsx, .xls หรือ .csv เท่านั้น"));
+      return cb(new Error("unsupported import file"));
     }
 
     cb(null, true);
@@ -41,16 +42,60 @@ const upload = multer({
 function handleUpload(req, res, next) {
   upload.single("file")(req, res, (err) => {
     if (err instanceof multer.MulterError) {
+      console.error("Upload middleware error:", err);
       if (err.code === "LIMIT_FILE_SIZE") {
-        return res.status(400).json({ error: "ไฟล์มีขนาดใหญ่เกิน 5MB" });
+        return sendValidationError(res, [{
+          field: "file",
+          message: "ไฟล์มีขนาดใหญ่เกินขนาดที่กำหนด",
+          code: err.code,
+        }]);
       }
-      return res.status(400).json({ error: err.message });
+      return sendValidationError(res, [{
+        field: "file",
+        message: "ไฟล์อัปโหลดไม่ถูกต้อง",
+        code: "invalid_upload",
+      }]);
     }
     if (err) {
-      return res.status(400).json({ error: err.message });
+      console.error("Upload file filter error:", err);
+      return sendValidationError(res, [{
+        field: "file",
+        message: "ไฟล์ไม่ผ่านการตรวจสอบ",
+        code: "invalid_file",
+      }]);
     }
     next();
   });
+}
+
+function removeUploadedFile(file) {
+  if (!file?.path || !fs.existsSync(file.path)) return;
+
+  try {
+    fs.unlinkSync(file.path);
+  } catch (error) {
+    console.error("Unable to remove rejected upload:", error);
+  }
+}
+
+function validateImportFile(req, res, next) {
+  if (!req.file) {
+    return sendValidationError(res, [{
+      field: "file",
+      message: "กรุณาอัปโหลดไฟล์ Excel หรือ CSV",
+      code: "required",
+    }]);
+  }
+
+  const result = importFileSchema.safeParse(req.file);
+  if (!result.success) {
+    console.error("Import file validation failed:", result.error);
+    removeUploadedFile(req.file);
+    return sendValidationError(res, result.error.issues);
+  }
+
+  req.file = result.data;
+  return next();
 }
 
 
@@ -60,6 +105,7 @@ router.post(
   authMiddleware,
   adminMiddleware,
   handleUpload,
+  validateImportFile,
   importController.importDevices
 );
 
@@ -70,6 +116,7 @@ router.post(
   authMiddleware,
   adminMiddleware,
   handleUpload,
+  validateImportFile,
   importController.importPrintTransactions
 );
 

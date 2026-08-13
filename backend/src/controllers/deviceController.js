@@ -1,21 +1,8 @@
 const db = require("../config/database");
 const { z } = require("zod");
-
-// ============================================================
-// Validation Schema
-// ============================================================
-const deviceSchema = z.object({
-  serial_number: z.string().min(1, "Serial number is required"),
-  brand_id: z.number().int().positive().optional().nullable(),
-  model: z.string().optional().nullable(),
-  building_id: z.number().int().positive().optional().nullable(),
-  floor_id: z.number().int().positive().optional().nullable(),
-  division_id: z.number().int().positive().optional().nullable(),
-  department_id: z.number().int().positive().optional().nullable(),
-  contract_id: z.number().int().positive().optional().nullable(),
-  price_override: z.number().nonnegative().optional().nullable(),
-  status: z.enum(["active", "repair", "retired"]).optional(),
-});
+const deviceSchema = require("../modules/validation/schemas").deviceSchema;
+const { findDeviceRelationshipErrors } = require("../modules/validation/relationships");
+const { sendInternalError, sendValidationError } = require("../utils/httpError");
 
 // ============================================================
 // GET /api/devices
@@ -50,8 +37,7 @@ exports.getAll = async (req, res) => {
 
     res.json(rows);
   } catch (err) {
-    console.error("Error fetching devices:", err.message);
-    res.status(500).json({ error: err.message });
+    sendInternalError(res, err, "Error fetching devices:");
   }
 };
 
@@ -93,10 +79,7 @@ exports.getOne = async (req, res) => {
 
     res.json(rows[0]);
   } catch (err) {
-    console.error("Error fetching device:", err.message);
-    res.status(500).json({
-      error: err.message,
-    });
+    sendInternalError(res, err, "Error fetching device:");
   }
 };
 
@@ -105,7 +88,12 @@ exports.getOne = async (req, res) => {
 // ============================================================
 exports.create = async (req, res) => {
   try {
-    const validatedData = deviceSchema.parse(req.body);
+    const validatedData = req.validated?.body || deviceSchema.parse(req.body);
+
+    const relationshipErrors = await findDeviceRelationshipErrors(db, validatedData);
+    if (relationshipErrors.length > 0) {
+      return sendValidationError(res, relationshipErrors);
+    }
 
     const {
       serial_number,
@@ -139,15 +127,15 @@ exports.create = async (req, res) => {
     `,
       [
         serial_number,
-        brand_id || null,
-        model || null,
-        building_id || null,
-        floor_id || null,
-        division_id || null,
-        department_id || null,
-        contract_id || null,
-        price_override || null,
-        status || "active",
+        brand_id ?? null,
+        model ?? null,
+        building_id ?? null,
+        floor_id ?? null,
+        division_id ?? null,
+        department_id ?? null,
+        contract_id ?? null,
+        price_override ?? null,
+        status ?? "active",
       ]
     );
 
@@ -157,10 +145,7 @@ exports.create = async (req, res) => {
     });
   } catch (err) {
     if (err instanceof z.ZodError) {
-      return res.status(400).json({
-        error: "Validation failed",
-        details: err.errors,
-      });
+      return sendValidationError(res, err.issues);
     }
 
     if (err.code === "ER_DUP_ENTRY") {
@@ -169,11 +154,7 @@ exports.create = async (req, res) => {
       });
     }
 
-    console.error(err);
-
-    res.status(500).json({
-      error: err.message,
-    });
+    sendInternalError(res, err, "Error creating device:");
   }
 };
 
@@ -182,7 +163,12 @@ exports.create = async (req, res) => {
 // ============================================================
 exports.update = async (req, res) => {
   try {
-    const validatedData = deviceSchema.parse(req.body);
+    const validatedData = req.validated?.body || deviceSchema.parse(req.body);
+
+    const relationshipErrors = await findDeviceRelationshipErrors(db, validatedData);
+    if (relationshipErrors.length > 0) {
+      return sendValidationError(res, relationshipErrors);
+    }
 
     const {
       serial_number,
@@ -214,15 +200,15 @@ exports.update = async (req, res) => {
     `,
       [
         serial_number,
-        brand_id || null,
-        model || null,
-        building_id || null,
-        floor_id || null,
-        division_id || null,
-        department_id || null,
-        contract_id || null,
-        price_override || null,
-        status || "active",
+        brand_id ?? null,
+        model ?? null,
+        building_id ?? null,
+        floor_id ?? null,
+        division_id ?? null,
+        department_id ?? null,
+        contract_id ?? null,
+        price_override ?? null,
+        status ?? "active",
         req.params.id,
       ]
     );
@@ -238,17 +224,10 @@ exports.update = async (req, res) => {
     });
   } catch (err) {
     if (err instanceof z.ZodError) {
-      return res.status(400).json({
-        error: "Validation failed",
-        details: err.errors,
-      });
+      return sendValidationError(res, err.issues);
     }
 
-    console.error(err);
-
-    res.status(500).json({
-      error: err.message,
-    });
+    sendInternalError(res, err, "Error updating device:");
   }
 };
 
@@ -272,10 +251,6 @@ exports.remove = async (req, res) => {
       message: "Device deleted successfully",
     });
   } catch (err) {
-    console.error(err);
-
-    res.status(500).json({
-      error: err.message,
-    });
+    sendInternalError(res, err, "Error deleting device:");
   }
 };

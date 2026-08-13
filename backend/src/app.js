@@ -11,6 +11,7 @@ const expenseRoutes = require("./routes/expense");
 const importRoutes = require("./routes/imports");
 const masterDataRoutes = require("./routes/master-data");
 const printTransactionsRoutes = require("./routes/print-transactions");
+const { sendValidationError } = require("./utils/httpError");
 
 const app = express();
 
@@ -47,9 +48,27 @@ app.use((req, res) => {
 });
 
 app.use((err, req, res, next) => {
-  console.error(err);
-  res.status(500).json({
-    error: err.message || "Internal Server Error",
+  if (err.type === "entity.parse.failed") {
+    return sendValidationError(res, [{
+      field: "request",
+      message: "JSON ไม่ถูกต้อง",
+      code: "invalid_json",
+    }]);
+  }
+
+  if (err.type === "entity.too.large") {
+    return sendValidationError(res, [{
+      field: "request",
+      message: "ข้อมูล request มีขนาดใหญ่เกินกำหนด",
+      code: "request_too_large",
+    }]);
+  }
+
+  console.error("Unhandled request error:", err);
+
+  return res.status(500).json({
+    error: "Internal Server Error",
+    message: "เกิดข้อผิดพลาดภายในระบบ",
   });
 });
 

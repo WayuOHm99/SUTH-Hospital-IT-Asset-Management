@@ -20,4 +20,6 @@ test("accepts a numeric string", () => {
 test("rejects an invalid fiscal year", () => {
   assert.throws(() => getFiscalYearRange("not-a-year"), /ปีงบไม่ถูกต้อง/);
   assert.throws(() => getFiscalYearRange(BE_OFFSET - 1), /ปีงบไม่ถูกต้อง/);
+  assert.throws(() => getFiscalYearRange(1543), /ปีงบไม่ถูกต้อง/);
+  assert.throws(() => getFiscalYearRange(10000), /ปีงบไม่ถูกต้อง/);
 });

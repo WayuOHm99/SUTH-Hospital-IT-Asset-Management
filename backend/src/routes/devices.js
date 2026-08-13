@@ -3,6 +3,11 @@ const router = express.Router();
 
 const authMiddleware = require("../middleware/authMiddleware");
 const adminMiddleware = require("../middleware/adminMiddleware");
+const validateRequest = require("../middleware/validateRequest");
+const {
+  deviceSchema,
+  idParamsSchema,
+} = require("../modules/validation/schemas");
 
 const deviceController = require("../controllers/deviceController");
 
@@ -16,6 +21,7 @@ router.get(
 router.get(
   "/:id",
   authMiddleware,
+  validateRequest({ params: idParamsSchema }),
   deviceController.getOne
 );
 
@@ -24,6 +30,7 @@ router.post(
   "/",
   authMiddleware,
   adminMiddleware,
+  validateRequest({ body: deviceSchema }),
   deviceController.create
 );
 
@@ -31,6 +38,7 @@ router.put(
   "/:id",
   authMiddleware,
   adminMiddleware,
+  validateRequest({ params: idParamsSchema, body: deviceSchema }),
   deviceController.update
 );
 
@@ -38,6 +46,7 @@ router.delete(
   "/:id",
   authMiddleware,
   adminMiddleware,
+  validateRequest({ params: idParamsSchema }),
   deviceController.remove
 );
 

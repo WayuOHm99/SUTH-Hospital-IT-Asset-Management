@@ -3,6 +3,9 @@ const bcrypt = require("bcrypt");
 const jwt = require("jsonwebtoken");
 const rateLimit = require("express-rate-limit");
 const db = require("../config/database");
+const validateRequest = require("../middleware/validateRequest");
+const { loginSchema } = require("../modules/validation/schemas");
+const { sendInternalError } = require("../utils/httpError");
 
 const router = express.Router();
 
@@ -20,16 +23,9 @@ const loginLimiter = rateLimit({
     }
 });
 
-router.post("/login", loginLimiter, async (req, res) => {
+router.post("/login", loginLimiter, validateRequest({ body: loginSchema }), async (req, res) => {
 
-    const { username, password } = req.body || {};
-
-    if (!username || !password) {
-        return res.status(400).json({
-            message: "Username and password are required",
-            error: "Username and password are required"
-        });
-    }
+    const { username, password } = req.body;
 
     try {
 
@@ -84,12 +80,7 @@ router.post("/login", loginLimiter, async (req, res) => {
 
     } catch (error) {
 
-        console.error("Login error:", error);
-
-        return res.status(500).json({
-            message: "Server error",
-            error: error.message
-        });
+        return sendInternalError(res, error, "Login error:");
 
     }
 

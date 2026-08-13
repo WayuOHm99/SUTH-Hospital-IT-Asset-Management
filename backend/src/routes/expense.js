@@ -3,6 +3,9 @@ const router = express.Router();
 
 const db = require("../config/database");
 const authMiddleware = require("../middleware/authMiddleware");
+const validateRequest = require("../middleware/validateRequest");
+const { expenseParamsSchema } = require("../modules/validation/schemas");
+const { sendInternalError } = require("../utils/httpError");
 
 // ต้อง login ก่อนถึงจะดูค่าใช้จ่ายได้ (เดิมไม่มีการป้องกันเลย)
 router.use(authMiddleware);
@@ -45,14 +48,13 @@ router.get("/unassigned-devices", async (req, res) => {
 
         res.json({ devices, total_cost });
     } catch (err) {
-        console.error(err);
-        res.status(500).json({ error: err.message });
+        sendInternalError(res, err, "Error fetching unassigned device expense:");
     }
 });
 
 
 // Expense Hierarchy
-router.get("/:fiscal_year_id", async (req, res) => {
+router.get("/:fiscal_year_id", validateRequest({ params: expenseParamsSchema }), async (req, res) => {
 
     const { fiscal_year_id } = req.params;
 
@@ -206,14 +208,7 @@ router.get("/:fiscal_year_id", async (req, res) => {
     }
     catch(err){
 
-        console.error(err);
-
-
-        res.status(500).json({
-
-            error: err.message
-
-        });
+        sendInternalError(res, err, "Error fetching expense:");
 
     }
 

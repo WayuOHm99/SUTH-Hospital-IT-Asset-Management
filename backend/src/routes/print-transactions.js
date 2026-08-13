@@ -3,6 +3,18 @@ const router = express.Router();
 
 const db = require("../config/database");
 const authMiddleware = require("../middleware/authMiddleware");
+const validateRequest = require("../middleware/validateRequest");
+const {
+  normalizeMonth,
+  printTransactionQuerySchema,
+  printTransactionSchema,
+  bulkPrintTransactionsSchema,
+  bulkDeviceSchema,
+  printSummaryQuerySchema,
+  printByDeviceQuerySchema,
+  deviceIdParamsSchema,
+} = require("../modules/validation/schemas");
+const { sendInternalError } = require("../utils/httpError");
 
 // ต้อง login ก่อนถึงจะบันทึก/ดูยอดพิมพ์ได้ (เดิมไม่มีการป้องกันเลย)
 router.use(authMiddleware);
@@ -14,24 +26,11 @@ router.use(authMiddleware);
 // ทำให้ dropdown เดือนที่หน้า "บันทึกยอดพิมพ์รายเดือน" ขึ้นซ้ำ/ผิดตำแหน่ง
 // และเวลา filter ข้อมูลด้วย month ที่ format ไม่ตรงกัน ก็จะหาไม่เจอ
 // (เดือนที่มีข้อมูลจริงกลับโชว์ว่างเปล่า)
-function normalizeMonth(value) {
-  if (typeof value !== "string") return null;
-
-  const match = value.trim().match(/^(\d{4})-(\d{1,2})$/);
-  if (!match) return null;
-
-  const [, year, monthNum] = match;
-  const m = Number(monthNum);
-  if (m < 1 || m > 12) return null;
-
-  return `${year}-${String(m).padStart(2, "0")}`;
-}
-
 // ============================================================
 // GET /api/print-transactions
 // รายการยอดพิมพ์ทั้งหมด (รองรับ filter ?month=)
 // ============================================================
-router.get("/", async (req, res) => {
+router.get("/", validateRequest({ query: printTransactionQuerySchema }), async (req, res) => {
   try {
     let sql = `
       SELECT
@@ -45,13 +44,8 @@ router.get("/", async (req, res) => {
     const params = [];
 
     if (req.query.month) {
-      const month = normalizeMonth(req.query.month);
-      if (!month) {
-        return res.status(400).json({ error: "รูปแบบเดือนไม่ถูกต้อง (ต้องเป็น YYYY-MM)" });
-      }
-
       sql += " WHERE pt.month = ? ";
-      params.push(month);
+      params.push(req.query.month);
     }
 
     sql += " ORDER BY pt.month DESC ";
@@ -60,7 +54,7 @@ router.get("/", async (req, res) => {
 
     res.json(rows);
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    sendInternalError(res, err, "Error fetching print transactions:");
   }
 });
 
@@ -85,7 +79,7 @@ router.get("/months", async (req, res) => {
 
     res.json([...months].sort().reverse());
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    sendInternalError(res, err, "Error fetching print transaction months:");
   }
 });
 
@@ -93,23 +87,9 @@ router.get("/months", async (req, res) => {
 // POST /api/print-transactions
 // เพิ่ม/แก้ไขยอดพิมพ์ 1 รายการ (upsert — กันข้อมูลซ้ำเวลาบันทึกซ้ำเดือนเดิม)
 // ============================================================
-router.post("/", async (req, res) => {
+router.post("/", validateRequest({ body: printTransactionSchema }), async (req, res) => {
   try {
-    const { device_id, month: rawMonth, pages } = req.body;
-
-    if (!device_id || !rawMonth) {
-      return res.status(400).json({ error: "device_id และ month จำเป็นต้องระบุ" });
-    }
-
-    const month = normalizeMonth(rawMonth);
-    if (!month) {
-      return res.status(400).json({ error: "รูปแบบเดือนไม่ถูกต้อง (ต้องเป็น YYYY-MM)" });
-    }
-
-    const pagesNum = Number(pages || 0);
-    if (pagesNum < 0) {
-      return res.status(400).json({ error: "จำนวนหน้าต้องไม่ติดลบ" });
-    }
+    const { device_id: deviceId, month, pages } = req.body;
 
     await db.query(
       `
@@ -117,12 +97,12 @@ router.post("/", async (req, res) => {
       VALUES (?, ?, ?)
       ON DUPLICATE KEY UPDATE pages = VALUES(pages)
       `,
-      [device_id, month, pagesNum]
+      [deviceId, month, pages]
     );
 
     res.json({ message: "บันทึกยอดพิมพ์สำเร็จ" });
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    sendInternalError(res, err, "Error saving print transaction:");
   }
 });
 
@@ -133,17 +113,8 @@ router.post("/", async (req, res) => {
 // ON DUPLICATE KEY UPDATE จะไม่ทำงาน (ตาราง print_transactions ต้องมี
 // UNIQUE KEY (device_id, month))
 // ============================================================
-router.post("/bulk", async (req, res) => {
-  const { month: rawMonth, items } = req.body;
-
-  if (!rawMonth || !Array.isArray(items) || items.length === 0) {
-    return res.status(400).json({ error: "month และ items (array) จำเป็นต้องระบุ" });
-  }
-
-  const month = normalizeMonth(rawMonth);
-  if (!month) {
-    return res.status(400).json({ error: "รูปแบบเดือนไม่ถูกต้อง (ต้องเป็น YYYY-MM)" });
-  }
+router.post("/bulk", validateRequest({ body: bulkPrintTransactionsSchema }), async (req, res) => {
+  const { month, items } = req.body;
 
   const connection = await db.getConnection();
 
@@ -156,18 +127,13 @@ router.post("/bulk", async (req, res) => {
         continue;
       }
 
-      const pagesNum = Number(item.pages);
-      if (pagesNum < 0) {
-        throw new Error(`จำนวนหน้าของ device_id ${item.device_id} ต้องไม่ติดลบ`);
-      }
-
       await connection.query(
         `
         INSERT INTO print_transactions (device_id, month, pages)
         VALUES (?, ?, ?)
         ON DUPLICATE KEY UPDATE pages = VALUES(pages)
         `,
-        [item.device_id, month, pagesNum]
+        [item.device_id, month, item.pages]
       );
     }
 
@@ -176,8 +142,7 @@ router.post("/bulk", async (req, res) => {
     res.json({ message: `บันทึกยอดพิมพ์สำเร็จ ${items.length} รายการ` });
   } catch (err) {
     await connection.rollback();
-    console.error("Bulk save error:", err.message);
-    res.status(500).json({ error: err.message });
+    sendInternalError(res, err, "Bulk save error:");
   } finally {
     connection.release();
   }
@@ -191,12 +156,9 @@ router.post("/bulk", async (req, res) => {
 // ปีปฏิทิน (ม.ค.-ธ.ค.) — ผิด เพราะปีงบราชการไทยจริงคือ ต.ค.-ก.ย. คร่อมสองปีปฏิทิน
 // เปลี่ยนมารับ fiscal_year_id แล้วดึงช่วงเดือนจริงจากตาราง fiscal_year แทน
 // ============================================================
-router.get("/summary", async (req, res) => {
+router.get("/summary", validateRequest({ query: printSummaryQuerySchema }), async (req, res) => {
   try {
-    const fiscalYearId = Number(req.query.fiscal_year_id);
-    if (!fiscalYearId) {
-      return res.status(400).json({ error: "fiscal_year_id ไม่ถูกต้อง" });
-    }
+    const fiscalYearId = req.query.fiscal_year_id;
 
     const [[fiscalYear]] = await db.query(
       `SELECT start_month, end_month FROM fiscal_year WHERE id = ?`,
@@ -218,7 +180,7 @@ router.get("/summary", async (req, res) => {
 
     res.json(rows);
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    sendInternalError(res, err, "Error fetching print transaction summary:");
   }
 });
 
@@ -229,51 +191,44 @@ router.get("/summary", async (req, res) => {
 // เดิมรับ ?year=YYYY แล้ว filter ด้วย "month LIKE 'YYYY-%'" (สมมติปีงบ = ปีปฏิทิน ผิด)
 // เปลี่ยนมารับ fiscal_year_id แล้วดึงช่วงเดือนจริง (ต.ค.-ก.ย.) จากตาราง fiscal_year แทน
 // ============================================================
-router.get("/by-device/:deviceId", async (req, res) => {
-  try {
-    const deviceId = Number(req.params.deviceId);
-    const fiscalYearId = Number(req.query.fiscal_year_id);
+router.get(
+  "/by-device/:deviceId",
+  validateRequest({ params: deviceIdParamsSchema, query: printByDeviceQuerySchema }),
+  async (req, res) => {
+    try {
+      const deviceId = req.params.deviceId;
+      const fiscalYearId = req.query.fiscal_year_id;
 
-    if (!deviceId) {
-      return res.status(400).json({ error: "device_id ไม่ถูกต้อง" });
+      const [[fiscalYear]] = await db.query(
+        `SELECT start_month, end_month FROM fiscal_year WHERE id = ?`,
+        [fiscalYearId]
+      );
+      if (!fiscalYear) {
+        return res.status(404).json({ error: "ไม่พบปีงบประมาณนี้" });
+      }
+
+      const [rows] = await db.query(
+        `
+        SELECT month, pages
+        FROM print_transactions
+        WHERE device_id = ? AND month BETWEEN ? AND ?
+        `,
+        [deviceId, fiscalYear.start_month, fiscalYear.end_month]
+      );
+
+      res.json(rows);
+    } catch (err) {
+      sendInternalError(res, err, "Error fetching device print transactions:");
     }
-    if (!fiscalYearId) {
-      return res.status(400).json({ error: "fiscal_year_id ไม่ถูกต้อง" });
-    }
-
-    const [[fiscalYear]] = await db.query(
-      `SELECT start_month, end_month FROM fiscal_year WHERE id = ?`,
-      [fiscalYearId]
-    );
-    if (!fiscalYear) {
-      return res.status(404).json({ error: "ไม่พบปีงบประมาณนี้" });
-    }
-
-    const [rows] = await db.query(
-      `
-      SELECT month, pages
-      FROM print_transactions
-      WHERE device_id = ? AND month BETWEEN ? AND ?
-      `,
-      [deviceId, fiscalYear.start_month, fiscalYear.end_month]
-    );
-
-    res.json(rows);
-  } catch (err) {
-    res.status(500).json({ error: err.message });
   }
-});
+);
 
 // ============================================================
 // POST /api/print-transactions/bulk-device
 // บันทึกยอดพิมพ์ทีเดียวหลายเดือน สำหรับเครื่องเดียว (ใช้กับ Modal กรอก 12 เดือน)
 // ============================================================
-router.post("/bulk-device", async (req, res) => {
-  const { device_id, items } = req.body;
-
-  if (!device_id || !Array.isArray(items) || items.length === 0) {
-    return res.status(400).json({ error: "device_id และ items (array) จำเป็นต้องระบุ" });
-  }
+router.post("/bulk-device", validateRequest({ body: bulkDeviceSchema }), async (req, res) => {
+  const { device_id: deviceId, items } = req.body;
 
   const connection = await db.getConnection();
 
@@ -288,23 +243,13 @@ router.post("/bulk-device", async (req, res) => {
         continue;
       }
 
-      const month = normalizeMonth(item.month);
-      if (!month) {
-        throw new Error(`รูปแบบเดือนไม่ถูกต้อง: ${item.month}`);
-      }
-
-      const pagesNum = Number(item.pages);
-      if (pagesNum < 0) {
-        throw new Error(`จำนวนหน้าของเดือน ${month} ต้องไม่ติดลบ`);
-      }
-
       await connection.query(
         `
         INSERT INTO print_transactions (device_id, month, pages)
         VALUES (?, ?, ?)
         ON DUPLICATE KEY UPDATE pages = VALUES(pages)
         `,
-        [device_id, month, pagesNum]
+        [deviceId, item.month, item.pages]
       );
 
       saved++;
@@ -315,8 +260,7 @@ router.post("/bulk-device", async (req, res) => {
     res.json({ message: `บันทึกยอดพิมพ์สำเร็จ ${saved} เดือน` });
   } catch (err) {
     await connection.rollback();
-    console.error("Bulk-device save error:", err.message);
-    res.status(500).json({ error: err.message });
+    sendInternalError(res, err, "Bulk-device save error:");
   } finally {
     connection.release();
   }

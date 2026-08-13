@@ -1,3 +1,5 @@
+const { sendInternalError } = require("../../utils/httpError");
+
 function createDashboardController(db) {
 
 
@@ -95,11 +97,7 @@ function createDashboardController(db) {
   }
   catch(err){
 
-  console.error(err);
-
-  res.status(500).json({
-  error:err.message
-  });
+  sendInternalError(res, err, "Monthly KPI error:");
 
   }
 
@@ -212,15 +210,7 @@ function createDashboardController(db) {
     catch(err){
 
 
-      console.error(
-        "Building Summary Error:",
-        err.message
-      );
-
-
-      res.status(500).json({
-        error:err.message
-      });
+      sendInternalError(res, err, "Summary by building error:");
 
 
     }
@@ -307,15 +297,7 @@ function createDashboardController(db) {
 
     }catch(err){
 
-      console.error(
-        "Compare Error:",
-        err.message
-      );
-
-
-      res.status(500).json({
-        error:err.message
-      });
+      sendInternalError(res, err, "Compare error:");
 
     }
 
@@ -503,15 +485,7 @@ function createDashboardController(db) {
     }catch(err){
 
 
-      console.error(
-        "Stats Error:",
-        err.message
-      );
-
-
-      res.status(500).json({
-        error:err.message
-      });
+      sendInternalError(res, err, "Stats error:");
 
 
     }
@@ -646,17 +620,7 @@ function createDashboardController(db) {
     catch(err){
 
 
-      console.error(
-        "Expense Error:",
-        err.message
-      );
-
-
-      res.status(500).json({
-
-        error:err.message
-
-      });
+      sendInternalError(res, err, "Expense error:");
 
 
     }
@@ -876,8 +840,7 @@ function createDashboardController(db) {
       });
 
     } catch (err) {
-      console.error('By-department error:', err.message);
-      res.status(500).json({ error: err.message });
+      sendInternalError(res, err, 'By-department error:');
     }
   }
 
@@ -996,8 +959,7 @@ function createDashboardController(db) {
 
       res.json({ device_status, top_departments, contracts });
     } catch (err) {
-      console.error('Highlights Error:', err.message);
-      res.status(500).json({ error: err.message });
+      sendInternalError(res, err, 'Highlights error:');
     }
   }
 
