@@ -18,6 +18,9 @@ database/  Fresh schema, ordered migrations, and development seeds
 docs/      Architecture, handoff notes, fixes, and import samples
 ```
 
+`package.json` ที่ root ไม่มีโค้ดของตัวเอง ทำหน้าที่รวมคำสั่งของ `backend/`
+และ `frontend/` ให้รันจากที่เดียวเท่านั้น
+
 รายละเอียดสถาปัตยกรรมอยู่ที่
 [`docs/architecture/project-overview.md`](docs/architecture/project-overview.md)
 
@@ -48,36 +51,34 @@ docs/      Architecture, handoff notes, fixes, and import samples
    mysql -u root -p your_database < database/seeds/seed_dummy_data.sql
    ```
 
-3. ตั้งค่าและเปิด backend:
+3. ตั้งค่า backend environment:
 
    ```sh
-   cd backend
-   cp .env.example .env
-   npm install
-   npm run dev
+   cp backend/.env.example backend/.env
    ```
 
-4. เปิด frontend ในอีก terminal:
+4. ติดตั้ง dependencies ทั้งโปรเจกต์ แล้วเปิดทั้งสองฝั่งพร้อมกัน:
 
    ```sh
-   cd frontend
    npm install
+   npm run setup
    npm run dev
    ```
 
 Backend เริ่มต้นที่ `http://localhost:3000` และ frontend ที่
-`http://localhost:5173`
+`http://localhost:5173` กด `Ctrl+C` ครั้งเดียวเพื่อปิดทั้งคู่
+
+รันแยกฝั่งได้ด้วย `npm run dev:api` และ `npm run dev:web`
 
 ## Verification
 
 ```sh
-cd backend
-npm test
-
-cd frontend
 npm test
 npm run build
 ```
+
+`npm test` รันเทสต์ทั้ง backend และ frontend ส่วนคำสั่งเฉพาะฝั่งคือ
+`npm run test:api` และ `npm run test:web`
 
 หลัง automated tests ให้ smoke-test `GET /` และ authenticated flows ที่ได้รับ
 ผลกระทบกับฐานข้อมูลทดสอบ
